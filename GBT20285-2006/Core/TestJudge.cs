@@ -1,4 +1,6 @@
-﻿using System.Numerics;
+﻿using GBT20285_2006.Models;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace GBT20285_2006.Core
 {
@@ -10,17 +12,17 @@ namespace GBT20285_2006.Core
          * 参数:
          *       allalive - 染毒30min结束后,试验小鼠是否都存活(true:都存活 | false:任意一只死亡 )
          * 返回:
-         *       (narcotic,irritation,final) - 麻醉性结论,刺激性结论,最终结论 (-1:不合格 | 0:待观察 | 1:合格)
+         *       (narcotic,irritation,final) - 麻醉性结论,刺激性结论,最终结论 (false:不合格 | true:合格 | null:待观察)
          */
-        public static (int, int, int) JudgeWithin30Min(bool allalive)
+        public static (bool?, bool?, bool?) JudgeWithin30Min(bool allalive)
         {
-            int narcotic;
-            int irritation;
-            int final = 0;
+            bool? narcotic;
+            bool? irritation;
+            bool? final;
             // 麻醉性结论判定
-            narcotic = allalive ? 0 : -1;
+            narcotic = allalive ? null : false;
             // 刺激性结论判定
-            irritation = allalive ? 0 : -1;
+            irritation = allalive ? null : false;
             // 综合结论
             final = irritation;
 
@@ -33,28 +35,30 @@ namespace GBT20285_2006.Core
          *       allalive      - 判定时间范围内,试验小鼠是否都存活(true:都存活 | false:任意一只死亡 )
          *       preavgweight  - 试验前,小鼠的平均体重
          *       postavgweight - 执行该判定时,小鼠的平均体重
+         * 返回:
+         *       (narcotic,irritation,final) - 麻醉性结论,刺激性结论,最终结论 (false:不合格 | true:合格 | null:待观察)
          */
-        public static (int, int, int) JudgeWithin1Hour(bool allalive, float preavgweight, float postavgweight)
+        public static (bool?, bool?, bool?) JudgeWithin1Hour(bool allalive, float preavgweight, float postavgweight)
         {
-            int narcotic;
-            int irritation;
-            int final;
+            bool? narcotic;
+            bool? irritation;
+            bool? final;
             // 麻醉性结论判定
-            narcotic = allalive ? 0 : -1;
+            narcotic = allalive;
             // 刺激性结论判定
             if (!allalive)
             {
-                irritation = -1;
+                irritation = false;
             }
             else
             {
                 if ((int)(postavgweight * 10) >= (int)(preavgweight * 10))
                 {
-                    irritation = 1;
+                    irritation = true;
                 }
                 else
                 {
-                    irritation = 0;
+                    irritation = null;
                 }
             }
             // 综合结论
@@ -69,38 +73,64 @@ namespace GBT20285_2006.Core
          *       nday - 试验后第n天(n = 1,2,3)
          *       allalive      - 判定时间范围内,试验小鼠是否都存活(true:都存活 | false:任意一只死亡 )
          *       preavgweight  - 试验前,小鼠的平均体重
-         *       postavgweight - 执行该判定时,小鼠的平均体重
+         *       postavgweight - 执行该判定时,小鼠的平均体重.即第 nday 天的平均体重
+         * 返回:
+         *       (narcotic,irritation,final) - 麻醉性结论,刺激性结论,最终结论 (false:不合格 | true:合格 | null:待观察)
          */
-        public static (int, int, int) JudgeWithinPostDays(int nday, bool allalive, float preavgweight, float postavgweight)
+        public static (bool?, bool?, bool?) JudgeWithinPostDays(int nday, bool allalive, float preavgweight, float postavgweight)
         {
-            int narcotic = 1;  // 麻醉性结论默认判定为[合格]
-            int irritation = 0;
-            int final;
+            bool? narcotic = true;  // 麻醉性结论默认判定为[合格]
+            bool? irritation = null;
+            bool? final;
             // 刺激性结论
             if (!allalive)
             {
-                irritation = -1;
+                irritation = false;
             }
             else
             {
                 if ((int)(postavgweight * 10) >= (int)(preavgweight * 10))
                 {
-                    irritation = 1;
+                    irritation = true;
                 }
                 else
                 {
-                    if(nday == 1 || nday == 2)
+                    if (nday == 1 || nday == 2)
                     {
-                        irritation = 0;
-                    } 
-                    else if(nday == 3)
+                        irritation = null;
+                    }
+                    else if (nday == 3)
                     {
-                        irritation = -1;
-                    }                    
+                        irritation = false;
+                    }
                 }
             }
             // 综合结论
             final = irritation;
+
+            return (narcotic, irritation, final);
+        }
+
+        /*
+         * 功能: 指定产品编号及试验编号的结论判定
+         * 参数:
+         *       records - 小鼠体重列表
+         * 返回:
+         *       (narcotic,irritation,final) - 麻醉性结论,刺激性结论,最终结论 (false:不合格 | true:合格 | null:待观察)
+         */
+        public static (bool?, bool?, bool?) JudgeFinalResult(IList<MouseWeight> records)
+        {
+            bool? narcotic = null;
+            bool? irritation = null;
+            bool? final = null;
+
+            // 第1步: 
+            foreach (var item in records)
+            {
+
+            }
+
+            // 第2步: 计算试验当日平均体重
 
             return (narcotic, irritation, final);
         }
