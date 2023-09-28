@@ -110,29 +110,5 @@ namespace GBT20285_2006.Core
 
             return (narcotic, irritation, final);
         }
-
-        /*
-         * 功能: 指定产品编号及试验编号的结论判定
-         * 参数:
-         *       records - 小鼠体重列表
-         * 返回:
-         *       (narcotic,irritation,final) - 麻醉性结论,刺激性结论,最终结论 (false:不合格 | true:合格 | null:待观察)
-         */
-        public static (bool?, bool?, bool?) JudgeFinalResult(IList<MouseWeight> records)
-        {
-            bool? narcotic = null;
-            bool? irritation = null;
-            bool? final = null;
-
-            // 第1步: 
-            foreach (var item in records)
-            {
-
-            }
-
-            // 第2步: 计算试验当日平均体重
-
-            return (narcotic, irritation, final);
-        }
     }
 }

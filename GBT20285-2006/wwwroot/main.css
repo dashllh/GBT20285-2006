@@ -1,0 +1,65 @@
+.main-container {
+    width: 100%;
+    height: calc(100vh - 60px);
+    overflow: hidden;
+}
+
+.tabpage {
+    /* 内部布局 */
+    display: grid;
+    justify-content: space-around;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.control-panel {
+    width: 1050px;
+    padding: 5px;
+    background-color: white;
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.4);
+    border-radius: 5px;
+}
+
+.control-view {
+    padding: 3px;
+    /* 布局属性 */
+    display: grid;
+    grid-template:
+        "timer     chart"
+        "temp      chart"
+        "deltatemp chart"
+        "cgasflow  chart"
+        "dgasflow  chart"
+        "message   message";
+    grid-template-columns: 1fr 6fr;
+    grid-template-rows: repeat(5, 1fr) 210px;
+    row-gap: 5px;    
+}
+
+.timer {
+    grid-area: timer;
+}
+
+.furnacetemp {
+    grid-area: temp;
+}
+
+.deltatemp {
+    grid-area: deltatemp;
+}
+
+.cgasflow {
+    grid-area: cgasflow;
+}
+
+.dgasflow {
+    grid-area: dgasflow;
+}
+
+.chart {
+    grid-area: chart;
+}
+
+.message {
+    grid-area: message;
+}

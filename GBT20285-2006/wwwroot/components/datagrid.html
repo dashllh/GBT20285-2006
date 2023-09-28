@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <!-- 导入JQuery库 -->
+    <script src="../libs/jquery-easyui-1.10.16/jquery.min.js"></script>
+    <!-- 导入JQuery EasyUI库 -->
+    <script src="../libs/jquery-easyui-1.10.16/jquery.easyui.min.js"></script>
+    <!-- 导入Easy UI单元格编辑扩展库 -->
+    <script src="../libs/jquery-easyui-1.10.16/datagrid-cellediting.js"></script>
+    <!-- 导入EasyUI样式文件 -->
+    <link rel="stylesheet" href="../libs/jquery-easyui-1.10.16/themes/bootstrap/easyui.css">
+    <!-- 导入EasyUI图标文件 -->
+    <link rel="stylesheet" href="../libs/jquery-easyui-1.10.16/themes/icon.css">
+    <link rel="stylesheet" href="../libs/jquery-easyui-1.10.16/themes/myicon.css">
+
+</head>
+
+<body>
+    <!-- 小鼠体重列表工具栏 -->
+    <div id="tb-lstweight" style="height:auto">
+        <a id="btnSave" class="easyui-linkbutton" data-options="iconCls:'icon-save',plain:true">保存</a>
+    </div>
+    <table id="dg-lstweight" class="easyui-datagrid" style="width:1050px;height:500px" data-options="iconCls: 'icon-edit',singleSelect: true,toolbar: '#tb-lstweight',clickToEdit:true,
+        onCellEdit:onCellEdit,onEndEdit:onEndEdit">
+    </table>
+
+    <br>
+    <button id="btnJudge">判定</button>
+</body>
+<footer>
+    <script src="./datagrid.js"></script>
+</footer>
+
+</html>

@@ -61,8 +61,9 @@ public partial class Test
     public DateTime? Checkdatet { get; set; }
 
     [Column("according")]
-    [MaxLength(50)]
-    public byte[]? According { get; set; }
+    [StringLength(50)]
+    [Unicode(false)]
+    public string? According { get; set; }
 
     [Column("safetylevel")]
     [StringLength(50)]

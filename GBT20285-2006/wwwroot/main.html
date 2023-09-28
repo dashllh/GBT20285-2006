@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>材料毒性危险分级试验系统 版本 2.0</title>
+
+    <!-- 导入JQuery库 -->
+    <script src="../libs/jquery-easyui-1.10.16/jquery.min.js"></script>
+    <!-- 导入JQuery EasyUI库 -->
+    <script src="../libs/jquery-easyui-1.10.16/jquery.easyui.min.js"></script>
+    <!-- 导入Easy UI单元格编辑扩展库 -->
+    <script src="../libs/jquery-easyui-1.10.16/datagrid-cellediting.js"></script>
+    <!-- 导入EasyUI样式文件 -->
+    <link rel="stylesheet" href="../libs/jquery-easyui-1.10.16/themes/bootstrap/easyui.css">
+    <!-- 导入EasyUI图标文件 -->
+    <link rel="stylesheet" href="../libs/jquery-easyui-1.10.16/themes/icon.css">
+    <link rel="stylesheet" href="../libs/jquery-easyui-1.10.16/themes/myicon.css">
+    <!-- 导入全局样式文件 -->
+    <link rel="stylesheet" href="global.css">
+    <!-- 导入导航栏样式文件 -->
+    <link rel="stylesheet" href="navigation.css">
+    <!-- 导入主页样式文件 -->
+    <link rel="stylesheet" href="main.css">
+    <!-- 导入Web Component组件类型及样式文件 -->
+    <script type="module" src="components/rt-itemv/rt-itemv.js"></script>
+    <link rel="stylesheet" href="components/rt-itemv/rt-itemv.css">
+    <!-- 导入新建试验对话框属性文件 -->
+    <link rel="stylesheet" href="components/dlg-newtest.css">
+</head>
+
+<body>
+    <!-- 应用程序标题区域 -->
+    <nav>
+        <div class="brand">
+            材料毒性危险分级试验系统 版本 3.0
+            <!-- <img src="/logo.png" style="width: 30vw;height: auto;"> -->
+        </div>
+        <div class="sysbuttons">
+            <div id="btnAbout" class="easyui-linkbutton" data-options="iconCls:'icon-information',width:85">
+                关于
+            </div>
+            <div id="btnQuit" class="easyui-linkbutton" data-options="iconCls:'icon-quit',width:85">
+                退出
+            </div>
+        </div>
+    </nav>
+    <!-- 应用程序主视图区域 -->
+    <div class="main-container">
+        <div class="easyui-tabs" style="width: 100%;" data-options="tabWidth:100,pill:true,fit:true">
+            <!-- 样品试验视图 -->
+            <div title="样品试验" class="tabpage" data-options="iconCls:'icon-archive'">
+                <!-- 一号设备控制面板 -->
+                <div class="control-panel">
+                    <!-- 命令按钮 -->
+                    <div class="control-toolbar">
+                        <a id="btnNewTest0" class="easyui-linkbutton" data-options="plain:true,iconCls:'icon-file'"
+                            onclick="createNewTest(0)">新建试验</a>
+                        <a id="btnStartRecord0" class="easyui-linkbutton"
+                            data-options="plain:true,iconCls:'icon-timer'">开始记录</a>
+                        <a id="btnStopRecord0" class="easyui-linkbutton"
+                            data-options="plain:true,iconCls:'icon-stop'">停止记录</a>
+                        <a id="btnSetPheno0" class="easyui-linkbutton"
+                            data-options="plain:true,iconCls:'icon-checklist'" onclick="setTestPheno(0)">试验记录</a>
+                        <a id="btnSetParam0" class="easyui-linkbutton"
+                            data-options="plain:true,iconCls:'icon-set'">参数设置</a>
+                        <a id="btnPowerOn0" class="easyui-linkbutton"
+                            data-options="plain:true,iconCls:'icon-heat'">开始升温</a>
+                        <a id="btnPowerOff0" class="easyui-linkbutton"
+                            data-options="plain:true,iconCls:'icon-powerswitch'">停止升温</a>
+                        <img id="imgIndicator0" src="" style="margin: 8px 10px;float: right;">
+                    </div>
+                    <!-- 实时数据显示 -->
+                    <div class="control-view">
+                        <rt-itemv class="timer" label="计时" unit="(s)" round=0 data-serverid="0"
+                            data-bind-broadcast="timer"></rt-itemv>
+                        <rt-itemv class="furnacetemp" label="设定温度" unit="(℃)" round=1 data-serverid="0"
+                            data-bind-broadcast="furnacetemp"></rt-itemv>
+                        <rt-itemv class="deltatemp" label="温度偏差" unit="(℃)" round=1 data-serverid="0"
+                            data-bind-broadcast="deltatemp"></rt-itemv>
+                        <rt-itemv class="cgasflow" label="载气流量" unit="(L/min)" round=1 data-serverid="0"
+                            data-bind-broadcast="cgasflow"></rt-itemv>
+                        <rt-itemv class="dgasflow" label="稀释气流量" unit="(L/min)" round=1 data-serverid="0"
+                            data-bind-broadcast="dgasflow"></rt-itemv>
+                        <!-- 温度图表 -->
+                        <div class="chart">
+                            <canvas id="chartTemperature"></canvas>
+                        </div>
+                        <!-- 系统消息及实时数据列表 -->
+                        <div class="message">
+                            <div class="easyui-tabs"
+                                data-options="tabWidth:110,tabPosition:'bottom',fit:true,border:true">
+                                <div title="系统消息" data-options="iconCls:'icon-message'">
+                                    <table id="idServerMsg0" class="easyui-datagrid" style="width:100%;height:200px;"
+                                        data-options="striped:true,singleSelect:true,collapsible:true,fit:true,fitColumns:true,border:true">
+                                        <thead>
+                                            <tr>
+                                                <th data-options="field:'time',align:'center',width:'20%'">
+                                                    时间</th>
+                                                <th data-options="field:'content',align:'center',width:'80%'">
+                                                    消息内容</th>
+                                            </tr>
+                                        </thead>
+                                    </table>
+                                </div>
+                                <div title="实时数据" data-options="iconCls:'icon-list'">
+                                    <table id="idSensorData0" class="easyui-datagrid" style="width:100%;height:200px;"
+                                        data-options="striped:true,singleSelect:true,collapsible:true,fit:true,fitColumns:true,border:true">
+                                        <thead>
+                                            <tr>
+                                                <th data-options="field:'timer',align:'center',width:'15%'">
+                                                    计时(s)</th>
+                                                <th data-options="field:'temp1',align:'center',width:'17%'">
+                                                    炉壁温度(℃)</th>
+                                                <th data-options="field:'tempsuf',align:'center',width:'17%'">
+                                                    载气流量(L/min)</th>
+                                                <th data-options="field:'tempcen',align:'center',width:'17%'">
+                                                    稀释气流量(L/min)</th>
+                                            </tr>
+                                        </thead>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- 一号设备控制面板(结束) -->
+            </div>
+            <!-- 系统校准视图 -->
+            <div title="系统校准" class="tabpage" data-options="iconCls:'icon-newcali-large'">
+                <p>系统校准</p>
+            </div>
+            <!-- 试验报表视图 -->
+            <div title="试验报表" class="tabpage" data-options="iconCls:'icon-copy'">
+                <p>试验报表</p>
+            </div>
+            <!-- 系统调试视图 -->
+            <div title="系统调试" class="tabpage" data-options="iconCls:'icon-tool'">
+                <p>系统调试</p>
+            </div>
+        </div>
+    </div>
+    <!-- 一号设备控制面板对话框资源 -->
+    <!-- 新建试验对话框 -->
+    <div id="buttons-dlgNewTest0">
+        <a id="btnSubmitNewTest0" class="easyui-linkbutton" data-options="iconCls:'icon-ok'"
+            onclick="submitNewTest(0)">确定</a>
+        <a id="btnCancelNewTest0" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'"
+            onclick="closeNewTest(0)">取消</a>
+    </div>
+    <div id="dlgNewTest0" class="easyui-dialog" title="一号装置 - 新建试验"
+        style="top: 310px;width: 893px;height: 570px;background-color: rgba(245, 245, 245, 0.8);"
+        data-options="iconCls:'icon-file',closed:true,buttons:'#buttons-dlgNewTest0'">
+        <!-- 环境信息 -->
+        <fieldset class="fs-ambinfo">
+            <legend>环境信息</legend>
+            <label for="txtAmbTemp">环境温度(℃):</label>
+            <input type="text" id="txtAmbTemp" data-serverid="0" data-bind-test="ambtemp">
+            <label for="txtAmbHumi">环境湿度(%):</label>
+            <input type="text" id="txtAmbHumi" data-serverid="0" data-bind-test="ambhumi">
+        </fieldset>
+        <!-- 试样信息 -->
+        <fieldset class="fs-specimeninfo">
+            <legend>试样信息</legend>
+            <label for="txtProductId"><span style="color: red;">* </span>样品编号:</label>
+            <input type="text" id="txtProductId" data-serverid="0" data-bind-product="productid">
+            <label for="txtTestId"><span style="color: red;">* </span>样品标识:</label>
+            <input type="text" id="txtTestId" data-serverid="0" data-bind-test="testid">
+            <label for="txtProductName">样品名称:</label>
+            <input type="text" id="txtProductName" data-serverid="0" data-bind-product="productname"
+                style="grid-column: 2 / span 3;width: 100%;">
+            <label for="txtSpecification">样品规格:</label>
+            <input type="text" id="txtSpecification" data-serverid="0" data-bind-product="specification">
+            <label for="txtProductShape">样品形态:</label>
+            <input type="text" id="txtProductShape" data-serverid="0" data-bind-product="shape">
+            <label for="txtSpecimenWeight">试件质量(g):</label>
+            <input type="text" id="txtSpecimenWeight" data-serverid="0" data-bind-test="speciweight">
+            <label for="txtSpecimenLength">试件长度(mm):</label>
+            <input type="text" id="txtSpecimenLength" data-serverid="0" data-bind-test="specilength">
+        </fieldset>
+        <!-- 试验信息 -->
+        <fieldset class="fs-testinfo">
+            <legend>试验信息</legend>
+            <label for="txtReportId">报告编号:</label>
+            <input type="text" id="txtReportId" data-serverid="0" data-bind-test="reportid">
+            <label for="txtReportId"></label>
+            <label for="txtSmokeRate">产烟浓度:</label>
+            <input type="text" id="txtSmokeRate" data-serverid="0" data-bind-test="gasconcen">
+            <label for="txtSmokeRate">L/mg</label>
+            <label for="txtHeatTemp">加热温度:</label>
+            <input type="text" id="txtHeatTemp" data-serverid="0" data-bind-test="heattemp">
+            <label for="txtHeatTemp">℃</label>
+            <label for="txtCGasFlow">载气流量:</label>
+            <input type="text" id="txtCGasFlow" data-serverid="0" data-bind-test="cgasflow">
+            <label for="txtCGasFlow">L/min</label>
+            <label for="txtDGasFlow">稀释气流量:</label>
+            <input type="text" id="txtDGasFlow" data-serverid="0" data-bind-test="dgasflow">
+            <label for="txtDGasFlow">L/min</label>
+            <label for="txtFurnaceSpeed">炉位移速率:</label>
+            <input type="text" id="txtFurnaceSpeed" data-serverid="0" data-bind-test="furnacespeed">
+            <label for="txtFurnaceSpeed">mm/min</label>
+            <label for="txtTestDate">试验日期:</label>
+            <input type="text" id="txtTestDate" data-serverid="0" data-bind-test="testdate">
+            <label for="txtTestDate"></label>
+            <label for="txtAccording">检验依据:</label>
+            <input type="text" id="txtAccording" data-serverid="0" data-bind-test="according">
+            <label for="txtAccording"></label>
+            <label for="txtOperator">检验人员:</label>
+            <input type="text" id="txtOperator" data-serverid="0" data-bind-test="operator">
+            <label for="txtOperator"></label>
+        </fieldset>
+        <!-- 设备信息 -->
+        <fieldset class="fs-apparatusinfo">
+            <legend>设备信息</legend>
+            <label for="txtApparatusName">设备名称:</label>
+            <input type="text" id="txtApparatusName" data-serverid="0" data-bind-apparatus="apparatusname"
+                style="grid-column: 2 / span 3;width: 100%;">
+            <label for="txtApparatusId">设备编号:</label>
+            <input type="text" id="txtApparatusId" data-serverid="0" data-bind-apparatus="apparatusid">
+            <label for="txtCheckDateT">检定日期:</label>
+            <input type="text" id="txtCheckDateT" data-serverid="0" data-bind-apparatus="checkdatet">
+        </fieldset>
+        <!-- 其他信息 -->
+        <fieldset class="fs-otherinfo">
+            <legend>备注</legend>
+            <input type="text" id="txtComment" data-serverid="0" data-bind-test="comment">
+        </fieldset>
+    </div> <!-- 新建试验对话框(结束) -->
+
+    <!-- 试验记录对话框 -->
+    <div id="buttons-dlgPheno0">
+        <a id="btnSubmitPheno0" class="easyui-linkbutton" data-options="iconCls:'icon-ok'"
+            onclick="submitTestPheno(0)">确定</a>
+        <a id="btnCancelPheno0" class="easyui-linkbutton" data-options="iconCls:'icon-cancel'"
+            onclick="closeTestPheno(0)">取消</a>
+    </div>
+    <div id="dlgSetPheno0" class="easyui-dialog" title="一号装置 - 试验记录"
+        style="padding: 3px 5px;top: 310px;left: 720px;width: 360px;height: 335px;background-color: rgba(245, 245, 245, 0.8);"
+        data-options="iconCls:'icon-checklist',closed:true,buttons:'#buttons-dlgPheno0'">
+        <fieldset>
+            <legend>动物运动情况</legend>
+            <div id="chkMovement0"></div>
+        </fieldset>
+        <fieldset>
+            <legend>动物眼区变化</legend>
+            <div id="chkEyeSituation0"></div>
+        </fieldset>
+    </div>
+    <!-- 试验记录对话框(结束) -->
+
+    <!-- 参数设置对话框 -->
+
+    <!-- 参数设置对话框(结束) -->
+
+    <!-- 一号设备对话框资源(结束) -->
+</body>
+<footer>
+    <!-- 导入Chart.js库 -->
+    <script src="./libs/chartjs/chart.umd.js"></script>
+    <!-- 导入SignalR客户端库 -->
+    <script src="./libs/signalr/signalr.min.js"></script>
+    <!-- 导入客户端功能代码文件 -->
+    <script src="app.js"></script>
+    <!-- 导入新建试验对话框功能代码 -->
+    <script src="components/dlg-newtest.js"></script>
+    <!-- 导入试验记录对话框功能代码 -->
+    <script src="components/dlg-pheno.js"></script>
+</footer>
+
+</html>

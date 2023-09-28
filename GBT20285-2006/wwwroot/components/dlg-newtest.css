@@ -1,0 +1,68 @@
+
+#dlgNewTest0 fieldset {
+    position: absolute;
+    margin: 0;
+    padding: 10px;
+    overflow: hidden;    
+}
+
+legend {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.fs-ambinfo {
+    top: 40px;
+    left: 18px;
+    width: 540px;
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr 2fr;
+    justify-items: center;
+    justify-content: space-around;
+    align-items: center;
+    align-content: space-around;
+}
+
+.fs-specimeninfo {
+    top: 121px;
+    left: 18px;
+    width: 540px;
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr 2fr;
+    row-gap: 10px;
+    justify-items: center;
+    justify-content: space-around;
+    align-items: center;
+    align-content: space-around;
+}
+
+.fs-testinfo {
+    top: 40px;
+    left: 572px;
+    width: 300px;
+    display: grid;
+    grid-template-columns: 80px 120px 60px;
+    row-gap: 10px;
+    justify-items: center;
+    justify-content: space-around;
+    align-items: center;
+    align-content: space-around;
+}
+
+.fs-apparatusinfo {    
+    top: 320px;
+    left: 18px;
+    width: 540px;
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr 2fr;
+    row-gap: 10px;
+    justify-items: center;
+    justify-content: space-around;
+    align-items: center;
+    align-content: space-around;
+}
+
+.fs-otherinfo {
+    top: 438px;
+    left: 18px;
+    width: 855px;
+}

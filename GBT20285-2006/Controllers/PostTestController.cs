@@ -1,12 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using GBT20285_2006.Models;
 using Microsoft.EntityFrameworkCore;
 using GBT20285_2006.DBContext;
-using Microsoft.VisualBasic;
 using GBT20285_2006.Core;
-using Azure;
-using System.Text.Json;
 
 namespace GBT20285_2006.Controllers
 {
@@ -61,7 +57,7 @@ namespace GBT20285_2006.Controllers
         }
 
         /*
-         * 功能: 新增指定样品的指定试验编号的小鼠体重数据
+         * 功能: 新增指定样品的指定试验编号的小鼠体重数据(客户端新建样品试验任务时调用)
          * 参数:         
          *       productid - 样品编号
          *       testid    - 试验编号
@@ -135,8 +131,8 @@ namespace GBT20285_2006.Controllers
         [HttpGet("judgefinalresult/{productid}/{testid}")]
         public async Task<IActionResult> JudgeFinalResult(string productid, string testid)
         {
-            var respone = new Message();            
-            respone.Cmd = "judgefinalresult";
+            var response = new ServerResponseMessage();            
+            response.Command = "judgefinalresult";
             var ctx = _dbContextFactory.CreateDbContext();
             try
             {
@@ -144,37 +140,40 @@ namespace GBT20285_2006.Controllers
                 var testrecord = await ctx.Tests.Where(x => x.Specimenid == productid && x.Testid == testid).FirstOrDefaultAsync();
                 /* Step 1 - 根据 染毒期间30Min内试验现象 进行判定 */
                 if (testrecord == null) {
-                    respone.Ret = "-1";
-                    respone.Msg = "未查询到指定编号的试验记录";
-                    return new JsonResult(respone);
-                } else {
-                    (testrecord.Nounresult, testrecord.Irriresult, testrecord.Testresult) =
-                        TestJudge.JudgeWithin30Min(testrecord.Phenocode?[0] == '0');
-                    // 如果已得出结论,则设置处理标志并终止继续判定
-                    if (testrecord.Testresult != null)
-                    {
-                        if(testrecord.Flag != null)
-                        {
-                            char[] array = testrecord.Flag.ToCharArray();
-                            array[0] = '1'; // 设置处理标志为[已得出结论]
-                            testrecord.Flag = new string(array);
-                        }                        
-                        respone.Ret = "0";
-                        respone.Msg = "得出最终判定结论";
-                        respone.Param.Add("result", (testrecord.Nounresult, testrecord.Irriresult, testrecord.Testresult).ToString());
-
-                        // 保存最新判定结论至数据库
-                        await ctx.SaveChangesAsync();
-
-                        return new JsonResult(respone);
-                    }
+                    response.Result = false;
+                    response.Message = "未查询到指定编号的试验记录";
+                    response.Time = DateTime.Now.ToString("HH:mm:ss");
+                    return new JsonResult(response);
                 }
 
-                /* Step 2 - 根据 染毒后1h内小鼠状态 进行判定 */
+                (testrecord.Nounresult, testrecord.Irriresult, testrecord.Testresult) =
+                        TestJudge.JudgeWithin30Min(testrecord.Phenocode?[0] == '0');
+                // 如果已得出结论,则设置处理标志并终止继续判定
+                if (testrecord.Testresult != null)
+                {
+                    if (testrecord.Flag != null)
+                    {
+                        char[] array = testrecord.Flag.ToCharArray();
+                        array[0] = '1'; // 设置处理标志为[已得出结论]
+                        testrecord.Flag = new string(array);
+                    }
+                    response.Result = true;
+                    response.Message = "得出最终判定结论";
+                    response.Time = DateTime.Now.ToString("HH:mm:ss");
+                    response.Parameters.Add("result", (testrecord.Nounresult, testrecord.Irriresult, testrecord.Testresult).ToString());
 
-                /* Step 3 - 根据 染毒后第n天观察数据 进行判定 */
+                    // 保存最新判定结论至数据库
+                    await ctx.SaveChangesAsync();
+
+                    return new JsonResult(response);
+                }
+
+                /* Step 2 - 根据 染毒后1h内小鼠状态 进行判定 (该步骤根据实际检验业务需求定制)*/
+
+                /* Step 3 - 根据 染毒后第n天体重数据 进行判定 */
                 // 获取指定试验的小鼠体重列表数据
                 var weightrecords = await ctx.MouseWeights.Where(x => x.ProductId == productid && x.TestId == testid).ToListAsync();
+                // 将体重数据转换为按列操作的内存数据结构(第一列为:试验当天所有小鼠的体重数据,以此类推...)
                 List<List<float?>> weights = new List<List<float?>>
                 {
                     new List<float?>(),
@@ -197,9 +196,10 @@ namespace GBT20285_2006.Controllers
                 for (int i = 1; i < 4; i++) {
                     // 确认当前判定日体重值的有效性,即:若有null值,则认为数据不完整,不纳入判定
                     if (weights[i].Any(x => x == null)) {
-                        respone.Ret = "0";
-                        respone.Msg = "未得出最终判定结论";
-                        respone.Param.Add("result", (testrecord.Nounresult, testrecord.Irriresult, testrecord.Testresult).ToString());
+                        response.Result = true;
+                        response.Message = "未得出最终判定结论";
+                        response.Time = DateTime.Now.ToString("HH:mm:ss");
+                        response.Parameters.Add("result", (testrecord.Nounresult, testrecord.Irriresult, testrecord.Testresult).ToString());
 
                         break;
                     }
@@ -216,19 +216,22 @@ namespace GBT20285_2006.Controllers
                     }                    
                     // 确认是否已经得出有效判定结论,即:结论不包含"待观察"
                     if (testrecord.Testresult != null) {
-                        respone.Ret = "0";
-                        respone.Msg = "得出最终判定结论";                        
-                        respone.Param.Add("result", (testrecord.Nounresult, testrecord.Irriresult, testrecord.Testresult).ToString());
+                        response.Result = true;
+                        response.Message = "得出最终判定结论";
+                        response.Time = DateTime.Now.ToString("HH:mm:ss");
+                        response.Parameters.Add("result", (testrecord.Nounresult, testrecord.Irriresult, testrecord.Testresult).ToString());
                         // 分析并给出判定依据
-                        if ((bool)testrecord.Testresult) { // 最终结论为[合格]
-                            respone.Param.Add("noun","试验动物在染毒期内(含染毒后1小时)无死亡");
-                            respone.Param.Add("irri", $"试验动物体重在试验后第 {i} 天恢复");
-                        } else {  // 最终结论为[不合格]  
-                            respone.Param.Add("noun", "试验动物在染毒期内(含染毒后1小时)无死亡");
+                        if (testrecord.Testresult == true) { // 最终结论为[合格]
+                            //设置平均体重恢复天数
+                            testrecord.Recoveryday = Convert.ToByte(i);
+                            response.Parameters.Add("noun","试验动物在染毒期内(含染毒后1小时)无死亡");
+                            response.Parameters.Add("irri", $"试验动物体重在试验后第 {i} 天恢复");
+                        } else if(testrecord.Testresult == false) {  // 最终结论为[不合格]  
+                            response.Parameters.Add("noun", "试验动物在染毒期内(含染毒后1小时)无死亡");
                             if(!alllive) {  // 出现小鼠死亡 导致判定不合格的情况
-                                respone.Param.Add("irri", $"试验动物在试验后第 {i} 天死亡");
+                                response.Parameters.Add("irri", $"试验动物在试验后第 {i} 天死亡");
                             } else {  // 试验后3天内体重未恢复 导致判定不合格的情况
-                                respone.Param.Add("irri", $"试验动物平均体重在试验后3天内未恢复");
+                                response.Parameters.Add("irri", $"试验动物平均体重在试验后3天内未恢复");
                             }
                         }
                         // 设置处理标志
@@ -245,30 +248,32 @@ namespace GBT20285_2006.Controllers
             }
             catch (Exception e)
             {
-                respone.Ret = "-1";
-                respone.Msg = e.Message;
+                response.Result = false;
+                response.Time = DateTime.Now.ToString("HH:mm:ss");
+                response.Message = e.Message;
                 throw;
             }
 
-            return new JsonResult(respone);
+            return new JsonResult(response);
         }
     }
 
     //控制器函数返回消息对象
-    internal class Message
+    internal class ServerResponseMessage
     {
         //操作命令
-        public string Cmd { get; set; } = string.Empty;
-        //返回结果("0":执行成功 | "-1":执行失败)
-        public string Ret { get; set; } = string.Empty;
+        public string Command { get; set; } = string.Empty;
+        //返回结果(true:执行成功 | false:执行失败)
+        public bool Result { get; set; } = true;
+        public string Time { get; set; } = string.Empty;
         //返回消息内容
-        public string Msg { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
         //返回的附加参数
-        public Dictionary<string, object> Param { get; set; }
+        public Dictionary<string, object> Parameters { get; set; }
 
-        public Message()
-        {            
-            Param = new Dictionary<string, object>();
+        public ServerResponseMessage()
+        {
+            Parameters = new Dictionary<string, object>();
         }
     }
 }

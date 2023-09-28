@@ -16,7 +16,7 @@ public partial class User
     public string Userid { get; set; } = null!;
 
     [Column("passwd")]
-    [StringLength(50)]
+    [StringLength(64)]
     [Unicode(false)]
     public string? Passwd { get; set; }
 

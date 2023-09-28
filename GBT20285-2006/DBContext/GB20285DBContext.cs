@@ -22,6 +22,8 @@ public partial class GB20285DBContext : DbContext
 
     public virtual DbSet<Product> Products { get; set; }
 
+    public virtual DbSet<Sensor> Sensors { get; set; }
+
     public virtual DbSet<Test> Tests { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
@@ -34,6 +36,13 @@ public partial class GB20285DBContext : DbContext
         modelBuilder.Entity<MouseWeight>(entity =>
         {
             entity.HasKey(e => new { e.ProductId, e.TestId, e.MouseId }).HasName("PK_postexp_mouseweight");
+        });
+
+        modelBuilder.Entity<Sensor>(entity =>
+        {
+            entity.HasKey(e => e.Sensorid).HasName("PK_sensors");
+
+            entity.Property(e => e.Sensorid).ValueGeneratedNever();
         });
 
         OnModelCreatingPartial(modelBuilder);
