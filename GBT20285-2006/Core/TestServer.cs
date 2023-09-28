@@ -6,10 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Globalization;
 using CsvHelper;
-using OfficeOpenXml;
-using DevExpress.Spreadsheet;
-using DevExpress.XtraPrinting;
-using System.Text;
 
 
 namespace GBT20285_2006.Core
@@ -233,7 +229,7 @@ namespace GBT20285_2006.Core
             _broadcast.Clients.All.SendAsync("ServerBroadCast", jsonData);
         }
 
-        /* 试验后期处理函数(试验数据处理、试验数据输出、报表生成等) */
+        /* 试验后期处理函数(处理并保存试验数据,但不包括试验结论判定及试验报表生成) */
         public async void PostTestProcess()
         {
             /* 创建本地存储目录 */
@@ -264,243 +260,7 @@ namespace GBT20285_2006.Core
                     await csvwriter.WriteRecordsAsync(_bufSensorData);
                 }
                 //其他数据文件(比如视频记录等)
-                //...
-
-                /* 生成本次试验的报表 */
-                //设置EPPlus license版本为非商用版本
-                ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
-                //设置CSV文件格式
-                var format = new ExcelTextFormat()
-                {
-                    Delimiter = ',',
-                    EOL = "\r"    // 修改行尾结束符,默认为 "\r\n" ("\r"为回车符 "\n"为换行符);
-                                  // 字符类型引用符 format.TextQualifier = '"';
-                };
-                //操作Excel文件
-                using (ExcelPackage package = new ExcelPackage(new FileInfo($"D:\\GB20285\\template_report_{_serverid}.xlsx")))
-                {
-                    //取得传感器数据页面
-                    ExcelWorksheet sheet_sensordata = package.Workbook.Worksheets.ElementAt(1);
-                    //填充传感器原始数据(含首行标题)
-                    sheet_sensordata.Cells["A1"].LoadFromText(new FileInfo($"{datapath}\\sensordata.csv"), format, null, true);
-                    //取得小鼠体重页面
-                    ExcelWorksheet sheet_mouseweight = package.Workbook.Worksheets.ElementAt(2);
-                    //将小鼠体重页面拷贝至试验报表的 [小鼠体重] 页面
-                    if(_product != null && _test != null)
-                    {
-                        var records = ctx.MouseWeights.AsNoTracking()
-                            .Where(x => x.ProductId == _product.Productid && x.TestId == _test.Testid)
-                            .OrderBy(x => x.MouseId)
-                            .ToList();
-                        sheet_mouseweight.Cells["A1"].LoadFromDataTable(Utils.ToDataTable(records));
-                    }                    
-
-                    /* 设置报表首页部分数据 */
-                    //取得报表首页页面(页面索引从 0 开始)
-                    ExcelWorksheet sheet_main = package.Workbook.Worksheets.ElementAt(0);
-                    if (_product != null && _test != null)
-                    {
-                        //报告编号
-                        sheet_main.Cells["AB2"].Value = _product.Productid;
-                        //实验室温度
-                        sheet_main.Cells["G9"].Value = _test.Ambtemp;
-                        //环境湿度
-                        sheet_main.Cells["AC9"].Value = _test.Ambhumi;
-                        //产品名称
-                        sheet_main.Cells["G10"].Value = _product.Productname;
-                        //样品编号
-                        sheet_main.Cells["AA10"].Value = _product.Productid;
-                        //试验编号(样品标识号)
-                        sheet_main.Cells["AA11"].Value = _test.Testid;
-                        //规格型号
-                        sheet_main.Cells["G12"].Value = _product.Specification;
-                        //试件尺寸
-                        sheet_main.Cells["AA12"].Value = _test.Specilength;
-                        //样品形态
-                        sheet_main.Cells["G13"].Value = _product.Shape;
-                        //加热温度
-                        sheet_main.Cells["AA13"].Value = _test.Heattemp;
-
-                        //状态调节T
-                        //状态调节H
-                        //状态调节S
-
-                        //设备编号
-                        sheet_main.Cells["G15"].Value = _test.Apparatusid;
-                        //设备检定日期From
-                        sheet_main.Cells["AA14"].Value = _test.Checkdatef?.ToString("d");
-                        //设备检定日期To
-                        sheet_main.Cells["AA15"].Value = _test.Checkdatet?.ToString("d");
-
-                        //实验动物来源
-                        //实验动物品种
-                        //实验动物级别
-
-                        //检验依据
-                        sheet_main.Cells["AA17"].Value = _test.According;
-                        //材料产烟浓度等级
-                        switch (_test.Safetylevel)
-                        {
-                            case "AQ1":
-                                sheet_main.Cells["G18"].Value = "■";
-                                sheet_main.Cells["G45"].Value = "■";
-                                break;
-                            case "AQ2":
-                                sheet_main.Cells["L18"].Value = "■";
-                                sheet_main.Cells["K45"].Value = "■";
-                                break;
-                            case "ZA1":
-                                sheet_main.Cells["Q18"].Value = "■";
-                                sheet_main.Cells["O45"].Value = "■";
-                                break;
-                            case "ZA2":
-                                sheet_main.Cells["V18"].Value = "■";
-                                sheet_main.Cells["S45"].Value = "■";
-                                break;
-                            case "ZA3":
-                                sheet_main.Cells["AA18"].Value = "■";
-                                sheet_main.Cells["W45"].Value = "■";
-                                break;
-                            case "WX":
-                                sheet_main.Cells["AA45"].Value = "■";
-                                break;
-                            default:
-                                break;
-                        }
-                        //试件质量
-                        sheet_main.Cells["G19"].Value = _test.Speciweight;
-                        //残余质量
-                        sheet_main.Cells["R19"].Value = _test.Speciweightpost;
-                        //产烟率
-                        sheet_main.Cells["AA19"].Value = _test.Smokerate;
-                        //充分产烟率的确定方法
-                        if (_test.Smokerate != null)
-                        {
-                            var tempvalue = (int)(_test.Smokerate * 10);
-                            if (tempvalue > 950)
-                            {
-                                sheet_main.Cells["G21"].Value = "■";
-                            }
-                            //else if () { }
-                        }
-
-                        //载气流量
-                        sheet_main.Cells["G23"].Value = _test.Cgasflow;
-                        //稀释气流量
-                        sheet_main.Cells["AA23"].Value = _test.Dgasflow;
-                        //麻醉性结论
-                        if (_test.Nounresult == true)
-                        {
-                            sheet_main.Cells["K43"].Value = "合格";
-                        }
-                        else if (_test.Nounresult == false)
-                        {
-                            sheet_main.Cells["K43"].Value = "不合格";
-                        }
-                        else
-                        {
-                            sheet_main.Cells["K43"].Value = "待观察";
-                        }
-                        //刺激性结论
-                        if (_test.Irriresult == true)
-                        {
-                            sheet_main.Cells["S43"].Value = "合格";
-                        }
-                        else if (_test.Irriresult == false)
-                        {
-                            sheet_main.Cells["S43"].Value = "不合格";
-                        }
-                        else
-                        {
-                            sheet_main.Cells["S43"].Value = "待观察";
-                        }
-                        //综合结论
-                        if (_test.Testresult == true)
-                        {
-                            sheet_main.Cells["G46"].Value = "■";
-                            sheet_main.Cells["K46"].Value = "";
-                        }
-                        else if (_test.Testresult == false)
-                        {
-                            sheet_main.Cells["G46"].Value = "";
-                            sheet_main.Cells["K46"].Value = "■";
-                        }
-                        else
-                        {
-                            sheet_main.Cells["G46"].Value = "";
-                            sheet_main.Cells["K46"].Value = "";
-                        }
-                        //备注
-                        sheet_main.Cells["G47"].Value = _test.Comment;
-                        //检验人员
-                        sheet_main.Cells["E50"].Value = _test.Operator;
-                        //试验日期
-                        sheet_main.Cells["AB50"].Value = _test.Testdate?.ToString("d");
-
-                        //小鼠体重恢复情况
-                        if (_test.Testresult == true)
-                        {
-                            if (_test.Recoveryday != null)
-                            {
-                                sheet_main.Cells["G34"].Value = "■";
-                                sheet_main.Cells["L34"].Value = _test.Recoveryday;
-                            }
-                        }
-                        else if (_test.Testresult == false)
-                        {
-                            sheet_main.Cells["G35"].Value = "■";
-                        }
-                        //试验现象
-                        if (_test.Phenocode != null)
-                        {
-                            var pheno = new StringBuilder();
-                            if (_test.Phenocode[1] == '1') pheno.Append("欲跑不能,");
-                            if (_test.Phenocode[2] == '1') pheno.Append("呼吸变化,");
-                            if (_test.Phenocode[3] == '1') pheno.Append("惊跳,");
-                            if (_test.Phenocode[4] == '1') pheno.Append("挣扎,");
-                            if (_test.Phenocode[5] == '1') pheno.Append("不能翻身,");
-                            if (_test.Phenocode[6] == '1') pheno.Append("昏迷,");
-                            if (_test.Phenocode[7] == '1') pheno.Append("痉挛,");
-                            if (_test.Phenocode[8] == '1') pheno.Append("视力丧失,");
-                            if (_test.Phenocode[9] == '1') pheno.Append("流泪,");
-                            if (_test.Phenocode[10] == '1') pheno.Append("肿胀,");
-                            if (_test.Phenocode[11] == '1') pheno.Append("闭目,");
-                            //去掉末尾","
-                            pheno.Length--;
-                            //输出现象描述
-                            sheet_main.Cells["G36"].Value = pheno.ToString();
-                        }
-
-                        //保存本次试验报表
-                        await package.SaveAsAsync($"{rptpath}\\report.xlsx");
-                    }
-
-                }
-
-                /* 使用DevExpress Office API打开报表文件、执行公式计算并回填关键数据项 */
-                using (var workbook = new Workbook())
-                {
-                    // 加载报表文件
-                    workbook.LoadDocument($"{rptpath}\\report.xlsx", DocumentFormat.Xlsx);
-                    // 计算报表中所有公式
-                    workbook.CalculateFull();
-                    // 取得报表首页Sheet对象(Sheet索引从0开始)
-                    Worksheet worksheet = workbook.Worksheets[0];
-                    /* 根据报表计算结果回填本次试验的【结论判定属性】 */
-                    // 麻醉性结论
-                    // ...
-                    // 刺激性结论
-                    // ...
-                    // 综合结论
-                    // ...
-
-                    // 保存报表
-                    //workbook.SaveDocument($"{rptpath}\\report.xlsx", DocumentFormat.OpenXml);
-                    // 导出报表首页为PDF格式
-                    PdfExportOptions options = new PdfExportOptions();
-                    options.DocumentOptions.Author = "李西黎";
-                    workbook.ExportToPdf($"{rptpath}\\report.pdf", options, "main");
-                }
+                //...                
 
                 //保存本次试验数据至试验数据库                
                 if (_test != null)
@@ -511,9 +271,10 @@ namespace GBT20285_2006.Core
             }
             catch (Exception)
             {
+                // 将本次试验数据保存至指定目录
+                // ...
                 // 输出异常日志
                 // ...
-                throw;
             }
         }
     }
