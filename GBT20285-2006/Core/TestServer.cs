@@ -121,18 +121,24 @@ namespace GBT20285_2006.Core
             _test = null;
         }
 
-        public bool SetPhenomenon(string phenocode, string memo)
+        public async Task<bool> SetPhenomenon(string phenocode, string memo)
         {
-            if (_test != null && _test.Phenocode != null)
+            if (_test == null)
+                return false;
+
+            _test.Phenocode = phenocode;
+            //if (memo != string.Empty)
+            //{
+            //    // 其他试验现象描述(数据库内尚未增加该字段)
+            //}
+
+            // 试验已经完成,执行试验后期处理
+            if (_status == MasterStatus.Complete)
             {
-                _test.Phenocode = phenocode;
-                if (memo != string.Empty)
-                {
-                    // 其他试验现象描述(数据库内尚未增加该字段)
-                }
-                return true;
+                await PostTestProcess();
             }
-            return false;
+
+            return true;
         }
 
         public void SetProductData(Product product)
@@ -152,9 +158,29 @@ namespace GBT20285_2006.Core
             _status = MasterStatus.Recording;
         }
 
-        public void StopRecording()
+        /*
+         * 功能: 停止数据记录
+         * 参数:
+         *       save - 是否保存本次试验数据(false: 不保存)
+         */
+        public void StopRecording(bool save = true)
         {
-            _status = MasterStatus.Idle;
+            if (!save)
+            {
+                // 清空试验数据缓存
+                _test = null;
+                // 计时器归零
+                _counter = 0;
+                // 重置试验服务器状态为 [空闲],等待下一次试验
+                _status = MasterStatus.Idle;
+            }
+            else
+            {
+                // 计时器归零
+                _counter = 0;
+                // 设置试验服务器状态为 [完成]
+                _status = MasterStatus.Complete;
+            }
         }
 
         /* 试验服务器工作函数 */
@@ -230,7 +256,7 @@ namespace GBT20285_2006.Core
         }
 
         /* 试验后期处理函数(处理并保存试验数据,但不包括试验结论判定及试验报表生成) */
-        public async void PostTestProcess()
+        public async Task PostTestProcess()
         {
             /* 创建本地存储目录 */
             string prodpath = $"D:\\GB20285\\{_product?.Productid}";
@@ -249,8 +275,6 @@ namespace GBT20285_2006.Core
                 //本次试验报表目录
                 Directory.CreateDirectory(rptpath);
 
-                var ctx = _dbFactory.CreateDbContext();
-
                 /* 保存本次试验数据文件 */
                 //传感器采集数据
                 using (var writer = new StreamWriter($"{datapath}\\sensordata.csv", false))
@@ -259,13 +283,24 @@ namespace GBT20285_2006.Core
                     //写入数据内容
                     await csvwriter.WriteRecordsAsync(_bufSensorData);
                 }
-                //其他数据文件(比如视频记录等)
-                //...                
 
-                //保存本次试验数据至试验数据库                
+                //保存本次试验数据至试验数据库
+                var ctx = _dbFactory.CreateDbContext();
                 if (_test != null)
                 {
                     ctx.Tests.Add(_test);
+                    // 新建小鼠体重数据记录
+                    List<MouseWeight> weights = new List<MouseWeight>();
+                    for (short i = 0; i < _test.Mousecnt; i++)
+                    {
+                        weights.Add(new MouseWeight()
+                        {
+                            ProductId = _test.Specimenid,
+                            TestId = _test.Testid,
+                            MouseId = i
+                        });
+                    }
+                    ctx.MouseWeights.AddRange(weights.ToArray());
                 }
                 await ctx.SaveChangesAsync();
             }

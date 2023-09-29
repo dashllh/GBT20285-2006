@@ -111,11 +111,11 @@ namespace GBT20285_2006.Controllers
          *       Message - 试验服务器消息对象
          */
         [HttpPut("changepasswd")]
-        public async Task<IActionResult> ChangePasswd(string passwd, string newpasswd)
-        {
+        //public async Task<IActionResult> ChangePasswd(string passwd, string newpasswd)
+        //{
 
-            return Ok();
-        }
+        //    return Ok();
+        //}
 
         /*
          * 功能: 获取试验服务器当前信息
@@ -177,11 +177,11 @@ namespace GBT20285_2006.Controllers
          *       memo      - 其他现象描述
          */
         [HttpGet("setphenomenon/{id}/{phenocode}/{memo}")]
-        public IActionResult SetPhenomenon(int id, string phenocode, string memo)
+        public async Task<IActionResult> SetPhenomenon(int id, string phenocode, string memo)
         {
             var response = new ServerResponseMessage();
             response.Command = "setphenomenon";
-            var ret = _serverContainer.Servers[id].SetPhenomenon(phenocode, memo);
+            var ret = await _serverContainer.Servers[id].SetPhenomenon(phenocode, memo);
             if (ret)
             {
                 response.Result = true;

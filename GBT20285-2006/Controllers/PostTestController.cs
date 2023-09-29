@@ -219,12 +219,12 @@ namespace GBT20285_2006.Controllers
                     // 计算判定日的小鼠平均体重
                     avgPostWeight = weights[i].Average();
                     // 执行 试验后第i日 的结论判定
-                    if (avgTestDayWeight != null && avgPostWeight != null)
+                    if (avgTestDayWeight.HasValue && avgPostWeight.HasValue)
                     {
                         (testrecord.Nounresult, testrecord.Irriresult, testrecord.Testresult) = TestJudge.JudgeWithinPostDays(i, alllive, (float)avgTestDayWeight, (float)avgPostWeight);
                     }
                     // 确认是否已经得出有效判定结论,即:结论不包含"待观察"
-                    if (testrecord.Testresult != null)
+                    if (testrecord.Testresult.HasValue)
                     {
                         response.Result = true;
                         response.Message = "得出最终判定结论";
@@ -283,7 +283,7 @@ namespace GBT20285_2006.Controllers
          *       ServerResponseMessage
          */
         [HttpGet("gettestreport/{productid}/{testid}")]
-        public async Task<IActionResult> GenerateTestReport(string productid, string testid)
+        public async Task<IActionResult> GenerateTestReport(string productid, string testid, [FromQuery] double postweight, [FromQuery] string? smokeoption)
         {
             var response = new ServerResponseMessage();
             response.Command = "gettestreport";
@@ -307,7 +307,7 @@ namespace GBT20285_2006.Controllers
 
                     return new JsonResult(response);
                 }
-                var testrecord = ctx.Tests.AsNoTracking().Where(x => x.Specimenid == productid && x.Testid == testid).First();
+                var testrecord = ctx.Tests.Where(x => x.Specimenid == productid && x.Testid == testid).First();
                 if (testrecord == null)
                 {
                     response.Result = false;
@@ -421,20 +421,28 @@ namespace GBT20285_2006.Controllers
                         //试件质量
                         sheet_main.Cells["G19"].Value = testrecord.Speciweight;
                         //残余质量
-                        sheet_main.Cells["R19"].Value = testrecord.Speciweightpost;
+                        testrecord.Speciweightpost = postweight;
+                        sheet_main.Cells["R19"].Value = postweight;
                         //产烟率
+                        testrecord.Smokerate = (testrecord.Speciweight - postweight) / testrecord.Speciweight;
                         sheet_main.Cells["AA19"].Value = testrecord.Smokerate;
                         //充分产烟率的确定方法
-                        if (testrecord.Smokerate != null)
+                        if (testrecord.Smokerate.HasValue)
                         {
                             var tempvalue = (int)(testrecord.Smokerate * 10);
                             if (tempvalue > 950)
                             {
                                 sheet_main.Cells["G21"].Value = "■";
                             }
-                            //else if () { }
+                            else if(smokeoption == "1")
+                            {
+                                sheet_main.Cells["G20"].Value = "■";
+                            }
+                            else if(smokeoption == "2")
+                            {
+                                sheet_main.Cells["G22"].Value = "■";
+                            }
                         }
-
                         //载气流量
                         sheet_main.Cells["G23"].Value = testrecord.Cgasflow;
                         //稀释气流量
@@ -487,11 +495,10 @@ namespace GBT20285_2006.Controllers
                         sheet_main.Cells["E50"].Value = testrecord.Operator;
                         //试验日期
                         sheet_main.Cells["AB50"].Value = testrecord.Testdate?.ToString("d");
-
                         //小鼠体重恢复情况
                         if (testrecord.Testresult == true)
                         {
-                            if (testrecord.Recoveryday != null)
+                            if (testrecord.Recoveryday.HasValue)
                             {
                                 sheet_main.Cells["G34"].Value = "■";
                                 sheet_main.Cells["L34"].Value = testrecord.Recoveryday;
@@ -521,7 +528,8 @@ namespace GBT20285_2006.Controllers
                             //输出现象描述
                             sheet_main.Cells["G36"].Value = pheno.ToString();
                         }
-
+                        // 保存试验结果补录数据至数据库
+                        await ctx.SaveChangesAsync();
                         //保存本次试验报表
                         await package.SaveAsAsync($"{rptpath}\\report.xlsx");
                     }

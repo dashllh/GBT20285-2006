@@ -11,7 +11,7 @@ namespace GBT20285_2006.Core
         /* 开始记录数据 */
         public void StartRecording();
         /* 停止记录数据 */
-        public void StopRecording();
+        public void StopRecording(bool save = true);
         /* 执行试验逻辑 */
         public void DoTest(object? state);
 
@@ -42,7 +42,7 @@ namespace GBT20285_2006.Core
          *      true - 设置成功
          *      false - 设置失败(可能原因包括: 试验数据缓存对象为null)
          */
-        public bool SetPhenomenon(string phenocode, string memo);
+        public Task<bool> SetPhenomenon(string phenocode, string memo);
 
         /*
          * 功能: 设置本次试验样品的产品信息
@@ -83,6 +83,6 @@ namespace GBT20285_2006.Core
         public void ResetTestData();
 
         /* 试验结束后期处理(保存本次试验数据,视频记录等操作) */
-        public void PostTestProcess();
+        public Task PostTestProcess();
     }
 }
