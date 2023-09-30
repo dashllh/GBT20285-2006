@@ -8,6 +8,7 @@ using GBT20285_2006.Utility;
 using OfficeOpenXml;
 using DevExpress.XtraPrinting;
 using DevExpress.Spreadsheet;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace GBT20285_2006.Controllers
 {
@@ -434,11 +435,11 @@ namespace GBT20285_2006.Controllers
                             {
                                 sheet_main.Cells["G21"].Value = "■";
                             }
-                            else if(smokeoption == "1")
+                            else if (smokeoption == "1")
                             {
                                 sheet_main.Cells["G20"].Value = "■";
                             }
-                            else if(smokeoption == "2")
+                            else if (smokeoption == "2")
                             {
                                 sheet_main.Cells["G22"].Value = "■";
                             }
@@ -562,6 +563,97 @@ namespace GBT20285_2006.Controllers
 
                 return new JsonResult(response);
             }
+        }
+
+        /*
+         * 功能: 试验数据检索,用于生成试验报告
+         * 参数:
+         *       specimenid - 样品编号
+         *       testid     - 试验编号
+         * 返回:
+         *       ServerResponseMessage
+        */
+        [HttpGet("searchtestinfo/{productid}/{testid}")]
+        public async Task<IActionResult> SearchTestInformation(string productid, string? testid)
+        {
+            var response = new ServerResponseMessage();
+            response.Command = "searchtestinfo";
+
+            var result = new ReportSearchDataModel();
+            var ctx = _dbContextFactory.CreateDbContext();
+            try
+            {
+                
+                // 获取样品数据
+                var productinfo = await ctx.Products.Where(x => x.Productid == productid).FirstAsync();
+                if (productinfo == null)
+                {
+                    response.Result = false;
+                    response.Message = "未查询到指定样品信息,请检查样品编号。";
+                    response.Time = DateTime.Now.ToString("HH:mm:ss");
+
+                    return new JsonResult(response);
+                }
+                // 获取指定样品编号及试验编号的试验数据
+                if (!string.IsNullOrEmpty(testid))
+                {
+                    var testinfo = await ctx.Tests.Where(x => x.Specimenid == productid && x.Testid == testid).FirstAsync();
+                    if (testinfo == null)
+                    {
+                        response.Result = false;
+                        response.Message = "未查询到指定试验信息,请检查试验编号。";
+                        response.Time = DateTime.Now.ToString("HH:mm:ss");
+
+                        return new JsonResult(response);
+                    }
+                    response.Result = true;
+                    response.Message = "获取数据成功。";
+                    response.Time = DateTime.Now.ToString("HH:mm:ss");
+                                        
+                    result.Product = productinfo;
+                    result.Tests.Add(testinfo);
+                    response.Parameters.Add("result", result);
+
+                    return new JsonResult(response);
+                }
+                // 获取指定样品编号的所有试验数据
+                var testinfolist = await ctx.Tests.Where(x => x.Specimenid == productid).ToListAsync();
+                if (testinfolist.Count == 0)
+                {
+                    response.Result = false;
+                    response.Message = "未找到指定样品编号的试验信息。";
+                    response.Time = DateTime.Now.ToString("HH:mm:ss");
+
+                    return new JsonResult(response);
+                }                
+                result.Product = productinfo;
+                foreach (var item in testinfolist)
+                {
+                    result.Tests.Add(item);
+                }
+                response.Parameters.Add("result", result);
+
+                return new JsonResult(response);
+            }
+            catch (Exception e)
+            {
+                response.Result = false;
+                response.Message = "检索过程发生异常。";
+                response.Parameters.Add("error", e.Message);
+                response.Time = DateTime.Now.ToString("HH:mm:ss");
+                return new JsonResult(response);
+            }
+        }
+    }
+
+    // 报表检索返回数据对象
+    internal class ReportSearchDataModel
+    {
+        public Product? Product { get; set; }
+        public List<Test> Tests { get; set; }
+        public ReportSearchDataModel()
+        {
+            Tests = new List<Test>();
         }
     }
 
