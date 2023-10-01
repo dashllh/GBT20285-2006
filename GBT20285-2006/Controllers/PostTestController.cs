@@ -167,7 +167,12 @@ namespace GBT20285_2006.Controllers
                     response.Result = true;
                     response.Message = "得出最终判定结论";
                     response.Time = DateTime.Now.ToString("HH:mm:ss");
-                    response.Parameters.Add("result", (testrecord.Nounresult, testrecord.Irriresult, testrecord.Testresult).ToString());
+                    response.Parameters.Add("result", new SingleTestResult()
+                    {
+                        Nounresult = testrecord.Nounresult,
+                        Irriresult = testrecord.Irriresult,
+                        Testresult = testrecord.Testresult
+                    });
 
                     // 保存最新判定结论至数据库
                     await ctx.SaveChangesAsync();
@@ -208,7 +213,12 @@ namespace GBT20285_2006.Controllers
                         response.Result = true;
                         response.Message = "未得出最终判定结论";
                         response.Time = DateTime.Now.ToString("HH:mm:ss");
-                        response.Parameters.Add("result", (testrecord.Nounresult, testrecord.Irriresult, testrecord.Testresult).ToString());
+                        response.Parameters.Add("result", new SingleTestResult()
+                        {
+                            Nounresult = testrecord.Nounresult,
+                            Irriresult = testrecord.Irriresult,
+                            Testresult = testrecord.Testresult
+                        });
 
                         break;
                     }
@@ -230,7 +240,12 @@ namespace GBT20285_2006.Controllers
                         response.Result = true;
                         response.Message = "得出最终判定结论";
                         response.Time = DateTime.Now.ToString("HH:mm:ss");
-                        response.Parameters.Add("result", (testrecord.Nounresult, testrecord.Irriresult, testrecord.Testresult).ToString());
+                        response.Parameters.Add("result", new SingleTestResult()
+                        {
+                            Nounresult = testrecord.Nounresult,
+                            Irriresult = testrecord.Irriresult,
+                            Testresult = testrecord.Testresult
+                        });
                         // 分析并给出判定依据
                         if (testrecord.Testresult == true)
                         { // 最终结论为[合格]
@@ -583,7 +598,7 @@ namespace GBT20285_2006.Controllers
             var ctx = _dbContextFactory.CreateDbContext();
             try
             {
-                
+
                 // 获取样品数据
                 var productinfo = await ctx.Products.Where(x => x.Productid == productid).FirstAsync();
                 if (productinfo == null)
@@ -609,7 +624,7 @@ namespace GBT20285_2006.Controllers
                     response.Result = true;
                     response.Message = "获取数据成功。";
                     response.Time = DateTime.Now.ToString("HH:mm:ss");
-                                        
+
                     result.Product = productinfo;
                     result.Tests.Add(testinfo);
                     response.Parameters.Add("result", result);
@@ -625,7 +640,7 @@ namespace GBT20285_2006.Controllers
                     response.Time = DateTime.Now.ToString("HH:mm:ss");
 
                     return new JsonResult(response);
-                }                
+                }
                 result.Product = productinfo;
                 foreach (var item in testinfolist)
                 {
@@ -644,6 +659,14 @@ namespace GBT20285_2006.Controllers
                 return new JsonResult(response);
             }
         }
+    }
+
+    // 单次试验结论(麻醉性、刺激性、综合结论)对象
+    internal class SingleTestResult
+    {
+        public bool? Nounresult { get; set; }
+        public bool? Irriresult { get; set; }
+        public bool? Testresult { get; set; }
     }
 
     // 报表检索返回数据对象
