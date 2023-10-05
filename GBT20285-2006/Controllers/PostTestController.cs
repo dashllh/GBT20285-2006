@@ -42,7 +42,7 @@ namespace GBT20285_2006.Controllers
         [HttpGet("getmouseweight/{productid}/{testid}")]
         public async Task<IList<MouseWeightRecord>> GetMouseWeightAsync(string productid, string testid)
         {
-            var ctx = _dbContextFactory.CreateDbContext();
+            using var ctx = _dbContextFactory.CreateDbContext();
             var records = await ctx.MouseWeights.Where(x => x.ProductId == productid && x.TestId == testid).ToListAsync();
             var values = new List<MouseWeightRecord>();
             foreach (var record in records)
@@ -72,7 +72,7 @@ namespace GBT20285_2006.Controllers
         [HttpPost("appendmouseinfo/{productid}/{testid}")]
         public async Task<IActionResult> AppendWeight(string productid, string testid, [FromBody] IList<MouseWeightRecord> weights)
         {
-            var ctx = _dbContextFactory.CreateDbContext();
+            using var ctx = _dbContextFactory.CreateDbContext();
             var records = new List<MouseWeight>();
             foreach (var item in weights)
             {
@@ -106,7 +106,7 @@ namespace GBT20285_2006.Controllers
         [HttpPut("updatemouseweight/{productid}/{testid}")]
         public async Task<IActionResult> UpdateWeight(string productid, string testid, [FromBody] IList<MouseWeightRecord> weights)
         {
-            var ctx = _dbContextFactory.CreateDbContext();
+            using var ctx = _dbContextFactory.CreateDbContext();
             foreach (var item in weights)
             {
                 var record = ctx.MouseWeights.Where(x => x.ProductId == productid && x.TestId == testid && x.MouseId == item.MouseId).FirstOrDefault();
@@ -139,7 +139,7 @@ namespace GBT20285_2006.Controllers
         {
             var response = new ServerResponseMessage();
             response.Command = "judgefinalresult";
-            var ctx = _dbContextFactory.CreateDbContext();
+            using var ctx = _dbContextFactory.CreateDbContext();
             try
             {
                 // 获取指定试验数据
@@ -313,7 +313,7 @@ namespace GBT20285_2006.Controllers
             try
             {
                 // 从数据库获取指定样品编号及试验编号的试验数据
-                var ctx = _dbContextFactory.CreateDbContext();
+                using var ctx = _dbContextFactory.CreateDbContext();
                 var productrecord = ctx.Products.AsNoTracking().Where(x => x.Productid == productid).First();
                 if (productrecord == null)
                 {
@@ -562,7 +562,6 @@ namespace GBT20285_2006.Controllers
                     options.DocumentOptions.Author = testrecord?.Operator;
                     workbook.ExportToPdf($"{rptpath}\\report.pdf", options, "main");
                 }
-
                 response.Result = true;
                 response.Message = $"生成报表成功。样品编号: [ {testrecord?.Specimenid} ],试验编号:[ {testrecord?.Testid} ]";
                 response.Time = DateTime.Now.ToString("HH:mm:ss");
@@ -595,7 +594,7 @@ namespace GBT20285_2006.Controllers
             response.Command = "searchtestinfo";
 
             var result = new ReportSearchDataModel();
-            var ctx = _dbContextFactory.CreateDbContext();
+            using var ctx = _dbContextFactory.CreateDbContext();
             try
             {
 

@@ -46,7 +46,7 @@ namespace GBT20285_2006.Controllers
             var response = new ServerResponseMessage();
             response.Command = "login";
             // 从数据库查找指定用户的密码
-            var ctx = _dbContextFactory.CreateDbContext();
+            using var ctx = _dbContextFactory.CreateDbContext();
             try
             {
                 var loginuser = await ctx.Users.Where(x => x.Userid == user.Userid).FirstAsync();
@@ -95,6 +95,7 @@ namespace GBT20285_2006.Controllers
             }
             catch (Exception e)
             {
+                await ctx.DisposeAsync();
                 response.Result = false;
                 response.Time = DateTime.Now.ToString("HH:mm:ss");
                 response.Message = e.Message;
@@ -123,9 +124,28 @@ namespace GBT20285_2006.Controllers
         [HttpGet("getserverinfo")]
         public async Task<IActionResult> GetTestServerInformation()
         {
-            var ctx = _dbContextFactory.CreateDbContext();
-            var serverlist = await ctx.Apparatuses.ToListAsync();
-            return Ok(serverlist);
+            var response = new ServerResponseMessage();
+            response.Command = "getserverinfo";
+            using var ctx = _dbContextFactory.CreateDbContext();
+            try
+            {
+                var serverlist = await ctx.Apparatuses.ToListAsync();
+                response.Result = true;
+                response.Message = "成功获取试验服务器信息。";
+                response.Time = DateTime.Now.ToString("HH:mm:ss");
+                response.Parameters.Add("result",serverlist);
+
+                return new JsonResult(response);
+            }
+            catch (Exception e)
+            {
+                await ctx.DisposeAsync();
+                response.Result = false;
+                response.Message= e.Message;
+                response.Time = DateTime.Now.ToString("HH:mm:ss");
+                
+                return new JsonResult(response);
+            }            
         }
 
         /*
@@ -160,11 +180,12 @@ namespace GBT20285_2006.Controllers
         {
             var response = new ServerResponseMessage();
             response.Command = "startrecording";
-            response.Result = true;
-            response.Message = "OK";
-            response.Time = DateTime.Now.ToString("HH:mm:ss");
 
             _serverContainer.Servers[id].StartRecording();
+
+            response.Result = true;
+            response.Message = "OK";
+            response.Time = DateTime.Now.ToString("HH:mm:ss");            
 
             return new JsonResult(response);
         }
