@@ -9,11 +9,11 @@ namespace GBT20285_2006.Core
     {
         private readonly IDbContextFactory<GB20285DBContext> _dbContextFactory;
         private Timer timer;
-
+        
         public Daq(IDbContextFactory<GB20285DBContext> context)
         {
             _dbContextFactory = context;
-            timer = new Timer(FetchData);
+            timer = new Timer(FetchIOData);
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -23,7 +23,7 @@ namespace GBT20285_2006.Core
             // 建立传感器连接
 
             // 初始化传感器对象缓存
-            var ctx = _dbContextFactory.CreateDbContext();
+            using var ctx = _dbContextFactory.CreateDbContext();
             AppGlobal.Sensors = ctx.Sensors.ToDictionary(X => X.Sensorid);
 
             // 启动数据采集线程
@@ -37,7 +37,7 @@ namespace GBT20285_2006.Core
             return Task.CompletedTask;
         }
 
-        private void FetchData(object? status)
+        private void FetchIOData(object? status)
         {
             // 炉壁温度
             AppGlobal.Sensors[0].Inputvalue = 5.569;

@@ -42,6 +42,11 @@ public partial class Test
     [Column("smokerate")]
     public double? Smokerate { get; set; }
 
+    [Column("smokerateconfirm")]
+    [StringLength(50)]
+    [Unicode(false)]
+    public string? Smokerateconfirm { get; set; }
+
     [Column("specilength")]
     public double? Specilength { get; set; }
 

@@ -1,0 +1,27 @@
+.calibration-panel {
+    width: 1050px;
+    padding: 5px;
+    background-color: white;
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.4);
+    border-radius: 5px;
+}
+
+.cali-control-view {
+    padding: 3px;
+    /* 布局属性 */
+    display: grid;
+    grid-template:
+        "timer      chart"
+        "temp       chart"
+        "deltatemp  chart"
+        "refobjtemp chart"
+        "cgasflow   chart"
+        "message    message";
+    grid-template-columns: 1fr 6fr;
+    grid-template-rows: repeat(5, 1fr) 210px;
+    row-gap: 5px;    
+}
+
+.calibration-toolbar {
+    display: flex;
+}

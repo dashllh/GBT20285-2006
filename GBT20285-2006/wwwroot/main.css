@@ -21,6 +21,7 @@
 }
 
 .control-view {
+    max-height: 600px;
     padding: 3px;
     /* 布局属性 */
     display: grid;
@@ -34,6 +35,10 @@
     grid-template-columns: 1fr 6fr;
     grid-template-rows: repeat(5, 1fr) 210px;
     row-gap: 5px;    
+}
+
+.control-toolbar {
+    display: flex;
 }
 
 .timer {
@@ -56,7 +61,7 @@
     grid-area: dgasflow;
 }
 
-.chart {
+.chart {    
     grid-area: chart;
 }
 

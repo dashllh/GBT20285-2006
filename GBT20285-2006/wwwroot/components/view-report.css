@@ -1,0 +1,49 @@
+.report-container {
+    margin: 5px;
+    padding: 15px;
+    height: calc(100% - 15px);
+    display: grid;
+    grid-template-columns: 5fr 4fr;
+    overflow: hidden;
+    gap: 10px;
+}
+
+.left-side {
+    display: flex;
+    flex-direction: column;
+    row-gap: 15px;
+}
+
+.search-criteria {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    justify-content: space-between;
+    justify-items: center;
+    align-items: center;
+}
+
+.product-information {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    justify-content: space-between;
+    justify-items: center;
+    align-items: center;
+}
+
+.report-preview {
+    padding: 15px;
+    height: 100%;
+}
+
+a {
+    color: #4260e7;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+a:visited {
+    color: #4260e7;
+}

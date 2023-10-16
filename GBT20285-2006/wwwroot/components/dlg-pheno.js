@@ -35,9 +35,13 @@ function setTestPheno(serverid) {
 // 设置现象编码
 function submitTestPheno(serverid) {
     let code = "000000000000";
+    // 动物存活情况
+    code = setCharAt(code, 0, $(`#chkAlive${serverid}`).checkbox('options').checked ? '1' : '0');
+    // 动物运动情况
     $(`#chkMovement${serverid}`).checkgroup('getValue').forEach(item => {
         code = setCharAt(code, item, '1');
     });
+    // 动物眼区情况
     $(`#chkEyeSituation${serverid}`).checkgroup('getValue').forEach(item => {
         code = setCharAt(code, item, '1');
     });
@@ -45,9 +49,7 @@ function submitTestPheno(serverid) {
     // 提交最新设置
     fetch(`testserver/setphenomenon/${serverid}/${proxyTestData[serverid].phenocode}/''`)
         .then(response => response.json())
-        .then(data => {
-            appendServerMsg(serverid,data);
-        });
+        .then(data => appendServerMsg(serverid, data));
 
     $(`#dlgSetPheno${serverid}`).dialog('close');
 }

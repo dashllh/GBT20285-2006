@@ -15,14 +15,10 @@ namespace GBT20285_2006.Core
         {
             _broadcast = broadcast;
             _dbFactory = context;
-            Servers = new Dictionary<int, TestServer>();
-            Servers.Add(0, new TestServer(0, _dbFactory, _broadcast));
-            //Servers.Add(1, new TestServer(1, _dbFactory, _broadcast));
+            Servers = new Dictionary<int, TestServer>()
+            {
+                { 0, new TestServer(0, _dbFactory, _broadcast) }
+            };
         }
-
-        //public void Register()
-        //{
-        //    Servers.Add(Servers.Count, new TestServer(Servers.Count, _dbFactory, _broadcast));
-        //}
     }
 }

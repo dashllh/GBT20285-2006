@@ -26,9 +26,12 @@ namespace GBT20285_2006.Controllers
     {
         private readonly IDbContextFactory<GB20285DBContext> _dbContextFactory;
 
-        public PostTestController(IDbContextFactory<GB20285DBContext> context)
+        private readonly IWebHostEnvironment _Environment;
+
+        public PostTestController(IDbContextFactory<GB20285DBContext> context, IWebHostEnvironment environment)
         {
             _dbContextFactory = context;
+            _Environment = environment;
         }
 
         /*
@@ -40,26 +43,45 @@ namespace GBT20285_2006.Controllers
          *       weights   - 小鼠体重数据列表
          */
         [HttpGet("getmouseweight/{productid}/{testid}")]
-        public async Task<IList<MouseWeightRecord>> GetMouseWeightAsync(string productid, string testid)
+        public async Task<IActionResult> GetMouseWeightAsync(string productid, string testid)
         {
+            var response = new ServerResponseMessage();
+            response.Command = "getmouseweight";
+
             using var ctx = _dbContextFactory.CreateDbContext();
-            var records = await ctx.MouseWeights.Where(x => x.ProductId == productid && x.TestId == testid).ToListAsync();
-            var values = new List<MouseWeightRecord>();
-            foreach (var record in records)
+            try
             {
-                values.Add(new MouseWeightRecord()
-                {
-                    Status = record.Status,
-                    MouseId = record.MouseId,
-                    PreWeight1 = record.PreWeight1,
-                    PreWeight2 = record.PreWeight2,
-                    ExpWeight = record.ExpWeight,
-                    PostWeight1 = record.PostWeight1,
-                    PostWeight2 = record.PostWeight2,
-                    PostWeight3 = record.PostWeight3
-                });
+                var records = await ctx.MouseWeights
+                    .AsNoTracking()
+                    .Where(x => x.ProductId == productid && x.TestId == testid)
+                    .OrderBy(x => x.MouseId)
+                    .Select(m => new
+                    {
+                        m.MouseId,
+                        m.PreWeight2,
+                        m.PreWeight1,
+                        m.ExpWeight,
+                        m.PostWeight1,
+                        m.PostWeight2,
+                        m.PostWeight3
+                    })
+                    .ToListAsync();
+
+                response.Result = true;
+                response.Message = "获取小鼠体重列表成功。";
+                response.Parameters.Add("result", records);
+                response.Time = DateTime.Now.ToString("HH:mm:ss");
+
+                return new JsonResult(response);
             }
-            return values;
+            catch (Exception e)
+            {
+                response.Result = false;
+                response.Message = e.Message;
+                response.Time = DateTime.Now.ToString("HH:mm:ss");
+
+                return new JsonResult(response);
+            }
         }
 
         /*
@@ -106,24 +128,43 @@ namespace GBT20285_2006.Controllers
         [HttpPut("updatemouseweight/{productid}/{testid}")]
         public async Task<IActionResult> UpdateWeight(string productid, string testid, [FromBody] IList<MouseWeightRecord> weights)
         {
+            var response = new ServerResponseMessage();
+            response.Command = "updatemouseweight";
+
             using var ctx = _dbContextFactory.CreateDbContext();
-            foreach (var item in weights)
+            try
             {
-                var record = ctx.MouseWeights.Where(x => x.ProductId == productid && x.TestId == testid && x.MouseId == item.MouseId).FirstOrDefault();
-                if (record != null)
+                foreach (var item in weights)
                 {
-                    // 更新小鼠体重及状态数据
-                    record.PreWeight1 = item.PreWeight1;
-                    record.PreWeight2 = item.PreWeight2;
-                    record.ExpWeight = item.ExpWeight;
-                    record.PostWeight1 = item.PostWeight1;
-                    record.PostWeight2 = item.PostWeight2;
-                    record.PostWeight3 = item.PostWeight3;
-                    record.Status = item.Status;
+                    var record = ctx.MouseWeights.Where(x => x.ProductId == productid && x.TestId == testid && x.MouseId == item.MouseId).First();
+                    if (record != null)
+                    {
+                        // 更新小鼠体重及状态数据
+                        record.PreWeight1 = item.PreWeight1;
+                        record.PreWeight2 = item.PreWeight2;
+                        record.ExpWeight = item.ExpWeight;
+                        record.PostWeight1 = item.PostWeight1;
+                        record.PostWeight2 = item.PostWeight2;
+                        record.PostWeight3 = item.PostWeight3;
+                        record.Status = item.Status;
+                    }
                 }
+                await ctx.SaveChangesAsync();
+
             }
-            await ctx.SaveChangesAsync();
-            return Ok(0);
+            catch (Exception e)
+            {
+                response.Result = false;
+                response.Message = e.Message;
+                response.Time = DateTime.Now.ToString("HH:mm:ss");
+
+                return new JsonResult(response);
+            }
+            response.Result = true;
+            response.Message = "体重数据更新成功。";
+            response.Time = DateTime.Now.ToString("HH:mm:ss");
+
+            return new JsonResult(response);
         }
 
         /*
@@ -298,8 +339,8 @@ namespace GBT20285_2006.Controllers
          * 返回:
          *       ServerResponseMessage
          */
-        [HttpGet("gettestreport/{productid}/{testid}")]
-        public async Task<IActionResult> GenerateTestReport(string productid, string testid, [FromQuery] double postweight, [FromQuery] string? smokeoption)
+        [HttpGet("gettestreport/{productid}/{testid}/{postweight}/{smokeoption}")]
+        public async Task<IActionResult> GenerateTestReport(string productid, string testid, double postweight, string smokeoption)
         {
             var response = new ServerResponseMessage();
             response.Command = "gettestreport";
@@ -314,7 +355,7 @@ namespace GBT20285_2006.Controllers
             {
                 // 从数据库获取指定样品编号及试验编号的试验数据
                 using var ctx = _dbContextFactory.CreateDbContext();
-                var productrecord = ctx.Products.AsNoTracking().Where(x => x.Productid == productid).First();
+                var productrecord = await ctx.Products.AsNoTracking().Where(x => x.Productid == productid).FirstOrDefaultAsync();
                 if (productrecord == null)
                 {
                     response.Result = false;
@@ -323,7 +364,7 @@ namespace GBT20285_2006.Controllers
 
                     return new JsonResult(response);
                 }
-                var testrecord = ctx.Tests.Where(x => x.Specimenid == productid && x.Testid == testid).First();
+                var testrecord = await ctx.Tests.Where(x => x.Specimenid == productid && x.Testid == testid).FirstOrDefaultAsync();
                 if (testrecord == null)
                 {
                     response.Result = false;
@@ -358,8 +399,18 @@ namespace GBT20285_2006.Controllers
                         var records = ctx.MouseWeights.AsNoTracking()
                             .Where(x => x.ProductId == testrecord.Specimenid && x.TestId == testrecord.Testid)
                             .OrderBy(x => x.MouseId)
+                            .Select(m => new
+                            {
+                                m.MouseId,
+                                m.PreWeight2,
+                                m.PreWeight1,
+                                m.ExpWeight,
+                                m.PostWeight1,
+                                m.PostWeight2,
+                                m.PostWeight3
+                            })
                             .ToList();
-                        sheet_mouseweight.Cells["A1"].LoadFromDataTable(Utils.ToDataTable(records));
+                        sheet_mouseweight.Cells["A2"].LoadFromDataTable(Utils.ToDataTable(records));
                     }
 
                     /* 设置报表首页部分数据 */
@@ -439,26 +490,40 @@ namespace GBT20285_2006.Controllers
                         //残余质量
                         testrecord.Speciweightpost = postweight;
                         sheet_main.Cells["R19"].Value = postweight;
-                        //产烟率
-                        testrecord.Smokerate = (testrecord.Speciweight - postweight) / testrecord.Speciweight;
+                        //产烟率(%)
+                        testrecord.Smokerate = ((testrecord.Speciweight - postweight) / testrecord.Speciweight) * 100;
                         sheet_main.Cells["AA19"].Value = testrecord.Smokerate;
                         //充分产烟率的确定方法
-                        if (testrecord.Smokerate.HasValue)
+                        testrecord.Smokerateconfirm = smokeoption;
+                        if (smokeoption == "1")
                         {
-                            var tempvalue = (int)(testrecord.Smokerate * 10);
-                            if (tempvalue > 950)
-                            {
-                                sheet_main.Cells["G21"].Value = "■";
-                            }
-                            else if (smokeoption == "1")
-                            {
-                                sheet_main.Cells["G20"].Value = "■";
-                            }
-                            else if (smokeoption == "2")
-                            {
-                                sheet_main.Cells["G22"].Value = "■";
-                            }
+                            sheet_main.Cells["G21"].Value = "■";
                         }
+                        else if (smokeoption == "2")
+                        {
+                            sheet_main.Cells["G20"].Value = "■";
+                        }
+                        else if (smokeoption == "3")
+                        {
+                            sheet_main.Cells["G22"].Value = "■";
+                        }
+                        //if (testrecord.Smokerate.HasValue)
+                        //{
+                        //    var tempvalue = (int)(testrecord.Smokerate * 10);
+                        //    if (tempvalue > 950)
+                        //    {
+                        //        sheet_main.Cells["G21"].Value = "■";
+                        //    }
+                        //    else if (smokeoption == "1")
+                        //    {
+                        //        sheet_main.Cells["G20"].Value = "■";
+                        //    }
+                        //    else if (smokeoption == "2")
+                        //    {
+                        //        sheet_main.Cells["G22"].Value = "■";
+                        //    }
+                        //}
+
                         //载气流量
                         sheet_main.Cells["G23"].Value = testrecord.Cgasflow;
                         //稀释气流量
@@ -528,6 +593,7 @@ namespace GBT20285_2006.Controllers
                         if (testrecord.Phenocode != null)
                         {
                             var pheno = new StringBuilder();
+                            if (testrecord.Phenocode[0] == '1') pheno.Append("染毒期内死亡,");
                             if (testrecord.Phenocode[1] == '1') pheno.Append("欲跑不能,");
                             if (testrecord.Phenocode[2] == '1') pheno.Append("呼吸变化,");
                             if (testrecord.Phenocode[3] == '1') pheno.Append("惊跳,");
@@ -539,8 +605,9 @@ namespace GBT20285_2006.Controllers
                             if (testrecord.Phenocode[9] == '1') pheno.Append("流泪,");
                             if (testrecord.Phenocode[10] == '1') pheno.Append("肿胀,");
                             if (testrecord.Phenocode[11] == '1') pheno.Append("闭目,");
-                            //去掉末尾","
-                            pheno.Length--;
+                            // 如果记录了试验现象,则去掉末尾","
+                            if (pheno.Length > 0)
+                                pheno.Length--;
                             //输出现象描述
                             sheet_main.Cells["G36"].Value = pheno.ToString();
                         }
@@ -560,10 +627,19 @@ namespace GBT20285_2006.Controllers
                     // 导出报表首页为PDF格式
                     PdfExportOptions options = new PdfExportOptions();
                     options.DocumentOptions.Author = testrecord?.Operator;
-                    workbook.ExportToPdf($"{rptpath}\\report.pdf", options, "main");
+                    workbook.ExportToPdf($"{rptpath}\\report.pdf", options, "main");                    
                 }
+                // 复制报表至客户端可预览位置
+                string previewpath = $"{_Environment.WebRootPath}\\previewreports\\{testrecord?.Specimenid}\\{testrecord?.Testid}";
+                if (!Directory.Exists(previewpath))
+                {
+                    Directory.CreateDirectory(previewpath);
+                }
+                System.IO.File.Copy($"{rptpath}\\report.pdf", previewpath + "\\report.pdf", true);
+                
                 response.Result = true;
                 response.Message = $"生成报表成功。样品编号: [ {testrecord?.Specimenid} ],试验编号:[ {testrecord?.Testid} ]";
+                response.Parameters.Add("previewpath",$"previewreports\\{testrecord?.Specimenid}\\{testrecord?.Testid}\\report.pdf");
                 response.Time = DateTime.Now.ToString("HH:mm:ss");
 
                 return new JsonResult(response);
@@ -587,7 +663,7 @@ namespace GBT20285_2006.Controllers
          * 返回:
          *       ServerResponseMessage
         */
-        [HttpGet("searchtestinfo/{productid}/{testid}")]
+        [HttpGet("searchtestinfo/{productid}/{testid?}")]
         public async Task<IActionResult> SearchTestInformation(string productid, string? testid)
         {
             var response = new ServerResponseMessage();
@@ -597,9 +673,8 @@ namespace GBT20285_2006.Controllers
             using var ctx = _dbContextFactory.CreateDbContext();
             try
             {
-
                 // 获取样品数据
-                var productinfo = await ctx.Products.Where(x => x.Productid == productid).FirstAsync();
+                var productinfo = await ctx.Products.AsNoTracking().Where(x => x.Productid == productid).FirstOrDefaultAsync();
                 if (productinfo == null)
                 {
                     response.Result = false;
@@ -611,7 +686,7 @@ namespace GBT20285_2006.Controllers
                 // 获取指定样品编号及试验编号的试验数据
                 if (!string.IsNullOrEmpty(testid))
                 {
-                    var testinfo = await ctx.Tests.Where(x => x.Specimenid == productid && x.Testid == testid).FirstAsync();
+                    var testinfo = await ctx.Tests.Where(x => x.Specimenid == productid && x.Testid == testid).FirstOrDefaultAsync();
                     if (testinfo == null)
                     {
                         response.Result = false;
@@ -645,6 +720,9 @@ namespace GBT20285_2006.Controllers
                 {
                     result.Tests.Add(item);
                 }
+                response.Result = true;
+                response.Message = "获取数据成功。";
+                response.Time = DateTime.Now.ToString("HH:mm:ss");
                 response.Parameters.Add("result", result);
 
                 return new JsonResult(response);
@@ -652,9 +730,9 @@ namespace GBT20285_2006.Controllers
             catch (Exception e)
             {
                 response.Result = false;
-                response.Message = "检索过程发生异常。";
-                response.Parameters.Add("error", e.Message);
+                response.Message = "检索过程发生异常。" + "\n" + e.Message;
                 response.Time = DateTime.Now.ToString("HH:mm:ss");
+
                 return new JsonResult(response);
             }
         }

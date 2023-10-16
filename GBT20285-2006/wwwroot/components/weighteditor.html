@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <!-- 导入JQuery库 -->
+    <script src="../libs/jquery-easyui-1.10.16/jquery.min.js"></script>
+    <!-- 导入JQuery EasyUI库 -->
+    <script src="../libs/jquery-easyui-1.10.16/jquery.easyui.min.js"></script>
+    <!-- 导入Easy UI单元格编辑扩展库 -->
+    <script src="../libs/jquery-easyui-1.10.16/datagrid-cellediting.js"></script>
+    <!-- 导入EasyUI样式文件 -->
+    <link rel="stylesheet" href="../libs/jquery-easyui-1.10.16/themes/bootstrap/easyui.css">
+    <!-- 导入EasyUI图标文件 -->
+    <link rel="stylesheet" href="../libs/jquery-easyui-1.10.16/themes/icon.css">
+    <link rel="stylesheet" href="../libs/jquery-easyui-1.10.16/themes/myicon.css">
+    <!-- 导入应用程序全局样式文件 -->
+    <link rel="stylesheet" href="../global.css">
+    <!-- 导入本模块样式文件 -->
+    <link rel="stylesheet" href="./weighteditor.css">
+    <!-- 导入应用程序标题样式文件 -->
+    <link rel="stylesheet" href="../navigation.css">
+    <!-- 导入本模块功能代码 -->
+    <script src="./weighteditor.js" defer></script>
+</head>
+
+<body>
+    <!-- 应用程序标题区域 -->
+    <nav>
+        <div class="brand">
+            毒性试验动物体重记录系统 版本 2.0
+        </div>
+        <div class="sysbuttons">
+            <div id="btnAbout" class="easyui-linkbutton" data-options="iconCls:'icon-information',width:85">
+                关于
+            </div>
+            <div id="btnQuit" class="easyui-linkbutton" data-options="iconCls:'icon-quit',width:85">
+                退出
+            </div>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="mypanel search-criteria">
+            <label><span style="color: red;">* </span>样品编号:</label>
+            <input id="txtSpecimenId" type="text" required>
+            <label><span style="color: red;">* </span>试验编号:</label>
+            <input id="txtTestId" type="text" required>
+            <a id="btnSearch" class="easyui-linkbutton" data-options="iconCls:'icon-search'" style="width: 90px;">检索</a>
+            <a id="btnSave" class="easyui-linkbutton" data-options="iconCls:'icon-save'" style="width: 90px;">保存</a>
+        </div>
+        <!-- 小鼠体重列表工具栏 -->
+        <div class="mypanel">
+            <table id="dg-lstweight" class="easyui-datagrid" style="width:100%" data-options="iconCls: 'icon-edit',singleSelect: true,fitColumns:true,clickToEdit:true">
+            </table>
+        </div>
+    </div>
+</body>
+
+</html>

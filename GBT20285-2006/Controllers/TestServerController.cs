@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
+using System.Data;
+using System.ComponentModel.DataAnnotations;
 
 namespace GBT20285_2006.Controllers
 {
@@ -133,7 +135,7 @@ namespace GBT20285_2006.Controllers
                 response.Result = true;
                 response.Message = "成功获取试验服务器信息。";
                 response.Time = DateTime.Now.ToString("HH:mm:ss");
-                response.Parameters.Add("result",serverlist);
+                response.Parameters.Add("result", serverlist);
 
                 return new JsonResult(response);
             }
@@ -141,11 +143,42 @@ namespace GBT20285_2006.Controllers
             {
                 await ctx.DisposeAsync();
                 response.Result = false;
-                response.Message= e.Message;
+                response.Message = e.Message;
                 response.Time = DateTime.Now.ToString("HH:mm:ss");
-                
+
                 return new JsonResult(response);
-            }            
+            }
+        }
+
+        /* 功能: 获取样品信息 
+         * 参数:
+         *       productid - 样品编号
+         */
+        [HttpGet("getproductinfo/{productid}")]
+        public async Task<IActionResult> GetProductInfo(string productid)
+        {
+            var response = new ServerResponseMessage();
+            response.Command = "getproductinfo";
+            using var ctx = _dbContextFactory.CreateDbContext();
+            try
+            {
+                var record = await ctx.Products.AsNoTracking().Where(x => x.Productid == productid).FirstAsync();
+                response.Result = true;
+                response.Message = $"获取指定编号样品信息成功。样品编号: [{productid}]";
+                response.Time = DateTime.Now.ToString("HH:mm:ss");
+                response.Parameters.Add("result", record);
+
+                return new JsonResult(response);
+            }
+            catch (Exception e)
+            {
+                await ctx.DisposeAsync();
+                response.Result = false;
+                response.Message = e.Message;
+                response.Time = DateTime.Now.ToString("HH:mm:ss");
+
+                return new JsonResult(response);
+            }
         }
 
         /*
@@ -161,7 +194,7 @@ namespace GBT20285_2006.Controllers
             {
                 _serverContainer.Servers[id].StartRecording();
                 response.Result = true;
-                response.Message = "OK";
+                response.Message = "开始记录数据";
                 response.Time = DateTime.Now.ToString("HH:mm:ss");
             }
             else
@@ -184,11 +217,89 @@ namespace GBT20285_2006.Controllers
             _serverContainer.Servers[id].StartRecording();
 
             response.Result = true;
-            response.Message = "OK";
-            response.Time = DateTime.Now.ToString("HH:mm:ss");            
+            response.Message = "开始记录数据";
+            response.Time = DateTime.Now.ToString("HH:mm:ss");
 
             return new JsonResult(response);
         }
+
+        /*
+         * 功能: 停止记录
+         */
+        [HttpGet("stoprecording/{id}/{save}")]
+        public IActionResult StopRecording(int id, bool save = true)
+        {
+            var response = new ServerResponseMessage();
+            response.Command = "stoprecording";
+
+            _serverContainer.Servers[id].StopRecording(save);
+
+            response.Result = true;
+            response.Message = save ? "已停止数据记录并保存本次数据" : "已停止数据记录,数据未保存";
+            response.Time = DateTime.Now.ToString("HH:mm:ss");
+
+            return new JsonResult(response);
+        }
+
+        /*
+         * 功能: 设置环形炉开始加热
+         * 参数:
+         *       serverid - 试验控制器Id
+         */
+        [HttpGet("startheating/{id}")]
+        public async Task<IActionResult> StartHeating(int id)
+        {
+            var response = new ServerResponseMessage();
+            response.Command = "startheating";
+
+            // 发送指定,启动环形炉加热
+            try
+            {
+                // ...
+                response.Result = true;
+                response.Message = "环形炉开始加热";
+                response.Time = DateTime.Now.ToString("HH:mm:ss");
+            }
+            catch (Exception e)
+            {
+                response.Result = false;
+                response.Message = e.Message;
+                response.Time = DateTime.Now.ToString("HH:mm:ss");
+
+                return new JsonResult(response);
+            }
+
+            return new JsonResult(response);
+        }
+
+        /*
+         * 功能: 停止环形炉加热
+         * 参数:
+         *       serverid - 试验控制器Id 
+         */
+        [HttpGet("stopheating/{id}")]
+        public async Task<IActionResult> StopHeating(int id)
+        {
+            var response = new ServerResponseMessage();
+            response.Command = "startheating";
+
+            // 发送指定,停止环形炉加热
+            try
+            {
+                // ...
+            }
+            catch (Exception e)
+            {
+                response.Result = false;
+                response.Message = e.Message;
+                response.Time = DateTime.Now.ToString("HH:mm:ss");
+
+                return new JsonResult(response);
+            }
+
+            return new JsonResult(response);
+        }
+
 
         /*
          * 功能: 设置试验现象
@@ -222,13 +333,13 @@ namespace GBT20285_2006.Controllers
         /*
          * 功能: 设置服务器端试验数据缓存
          * 参数:
-         *       id   - 试验服务器Id
-         *       data - 上传的样品数据及试验数据
+         *       serverid   - 试验服务器Id
+         *       data       - 上传的样品数据及试验数据
          * 返回:
          *       Message对象
          */
-        [HttpPost("createnewtest/{id}")]
-        public async Task<IActionResult> CreateNewTest(int id, NewTestDataModel data)
+        [HttpPost("createnewtest/{serverid}")]
+        public async Task<IActionResult> CreateNewTest(int serverid, NewTestDataModel data)
         {
             var response = new ServerResponseMessage();
             response.Command = "createnewtest";
@@ -254,10 +365,10 @@ namespace GBT20285_2006.Controllers
                         return new JsonResult(response);
                     }
                     // 设置服务器端样品数据及试验数据缓存
-                    _serverContainer.Servers[id].SetProductData(data.Product);
-                    _serverContainer.Servers[id].SetTestData(data.Test);
+                    _serverContainer.Servers[serverid].SetProductData(data.Product);
+                    _serverContainer.Servers[serverid].SetTestData(data.Test);
                     response.Result = true;
-                    response.Message = $"新建试验成功。样品编号:[ {data.Product.Productid} ], 试验编号:[ {data.Test.Testid} ]";
+                    response.Message = $"创建试验信息成功。样品编号:[ {data.Product.Productid} ], 试验编号:[ {data.Test.Testid} ]";
                     response.Time = DateTime.Now.ToString("HH:mm:ss");
                 }
                 catch (Exception e)

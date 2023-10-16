@@ -1,6 +1,7 @@
 using GBT20285_2006.DBContext;
 using GBT20285_2006.Models;
 using GBT20285_2006.Core;
+using GBT20285_2006.Utility;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.EventLog;
 
@@ -8,7 +9,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    options.JsonSerializerOptions.Converters.Add(new DateTimeConverter());
+});
 builder.Services.AddSignalR();
 builder.Services.AddDbContextFactory<GB20285DBContext>(option =>
 {

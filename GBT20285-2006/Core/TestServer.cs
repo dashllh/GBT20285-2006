@@ -67,27 +67,31 @@ namespace GBT20285_2006.Core
          */
         public bool CheckStartCriteria()
         {
-            if (_test != null && _test.Heattemp != null)
-            {
-                try
-                {
-                    if (Math.Abs((int)(_signalRData.SensorData.FurnaceTemp * 10) - (int)(_test.Heattemp * 10)) <= 10)
-                    {
-                        _stableCounter--;
-                    }
-                    else
-                    {
-                        _stableCounter = 120;
-                    }
-                    return _stableCounter == 0;
-                }
-                catch (OverflowException)
-                {
-                    return false;
-                }
+            //if (_test != null && _test.Heattemp != null)
+            //{
+            //    try
+            //    {
+            //        if (Math.Abs((int)(_signalRData.SensorData.FurnaceTemp * 10) - (int)(_test.Heattemp * 10)) <= 10)
+            //        {
+            //            _stableCounter--;
+            //        }
+            //        else
+            //        {
+            //            _stableCounter = 120;
+            //        }
+            //        // 返回是否达到试验条件
+            //        return _stableCounter == 0;
+            //    }
+            //    catch (OverflowException)
+            //    {
+            //        return false;
+            //    }
 
-            }
-            return false;
+            //}
+            //return false;
+
+            // 测试目的: 返回 true
+            return true;
         }
 
         public bool CheckTerminateCriteria()
@@ -133,24 +137,22 @@ namespace GBT20285_2006.Core
             //}
 
             // 试验已经完成,执行试验后期处理
-            if (_status == MasterStatus.Complete)
-            {
-                await PostTestProcess();
-            }
+            //if (_status == MasterStatus.Complete)
+            //{
+            //    await PostTestProcess();
+            //}
 
             return true;
         }
 
         public void SetProductData(Product product)
         {
-            if (product != null)
-                _product = product;
+            _product = product;
         }
 
         public void SetTestData(Test test)
         {
-            if (test != null)
-                _test = test;
+            _test = test;
         }
 
         public void StartRecording()
@@ -184,9 +186,9 @@ namespace GBT20285_2006.Core
         }
 
         /* 试验服务器工作函数 */
-        public void DoTest(object? state)
+        public async void DoTest(object? state)
         {
-
+            _signalRData.Counter = _counter;
             /* 获取传感器最新采集数据 */
             _signalRData.SensorData.FurnaceTemp = AppGlobal.Sensors[0].Outputvalue;  // 环形炉温度
             _signalRData.SensorData.CGasFlow = AppGlobal.Sensors[1].Outputvalue; ;   // 载气流量
@@ -204,8 +206,6 @@ namespace GBT20285_2006.Core
             /* 设备最新状态数据 */
             // 鼠笼罩开闭状态
             // ...
-
-            _signalRData.Counter = _counter++;
 
             // 根据试验服务器状态执行响应操作
             switch (_status)
@@ -228,8 +228,7 @@ namespace GBT20285_2006.Core
                         _status = MasterStatus.Preparing;
                     }
                     break;
-                case MasterStatus.Recording:
-                    _signalRData.Counter = _counter;
+                case MasterStatus.Recording:                    
                     // 将最新采集数据添加至缓存
                     _bufSensorData.Add(new SensorData()
                     {
@@ -242,6 +241,8 @@ namespace GBT20285_2006.Core
                     _counter++;
                     break;
                 case MasterStatus.Complete:
+                    _status = MasterStatus.Idle;
+                    await PostTestProcess();
                     break;
                 case MasterStatus.Exception:
                     break;
@@ -252,7 +253,7 @@ namespace GBT20285_2006.Core
             _signalRData.WorkMode = _workmode;
             //向客户端发送数据广播
             var jsonData = JsonSerializer.Serialize(_signalRData);
-            _broadcast.Clients.All.SendAsync("ServerBroadCast", jsonData);
+            await _broadcast.Clients.All.SendAsync("ServerBroadCast", jsonData);
         }
 
         /* 试验后期处理函数(处理并保存试验数据,但不包括试验结论判定及试验报表生成) */

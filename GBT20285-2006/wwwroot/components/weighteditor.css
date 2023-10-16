@@ -1,0 +1,23 @@
+body {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.container {
+    width: 100%;
+    height: calc(100% - 60px);
+    padding: 15px;
+    display: grid;
+    justify-content: space-around;
+    align-items: center;
+    row-gap: 15px;
+    /* background-color: rgba(0, 0, 0, 0.3); */
+    overflow: hidden;
+}
+
+.search-criteria {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    justify-content: space-between;
+    justify-items: center;
+    align-items: center;
+}

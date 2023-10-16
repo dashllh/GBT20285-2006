@@ -1,5 +1,5 @@
 
-let curField = '';
+// let curField = '';
 
 /* 模块级数据模型 */
 let dm_MouseWeight = {
@@ -109,7 +109,7 @@ $('#dg-lstweight').datagrid({
             editor: { type: 'numberbox', options: { precision: 1 } }
         }
     ]]
-});
+}).datagrid('enableCellEditing');
 
 /*
  * 功能: 加载指定样品的指定试验的小鼠体重数据
@@ -118,39 +118,37 @@ $('#dg-lstweight').datagrid({
  *       testid:string    - 试验编号
 */
 function loadMouseWeight(productid, testid) {
-    fetch(`posttest/getmouseweight/${productid}/${testid}`)
+    fetch(`../posttest/getmouseweight/${productid}/${testid}`)
         .then(response => response.json())
         .then(records => {
             // 设置数据模型中的对应数据项
             dm_MouseWeight.weights = records;
             // datagrid控件加载最新体重数据
-            $('#dg-lstweight').datagrid('loadData',records).datagrid('enableCellEditing');
+            $('#dg-lstweight').datagrid('loadData', records);
         });
 }
 
 // 体重数据单元格事件响应函数:开始编辑
-function onCellEdit(index, field) {
-    // 记录当前正在编辑的单元格列名
-    curField = field;
-}
+// function onCellEdit(index, field) {
+//     // 记录当前正在编辑的单元格列名
+//     curField = field;
+// }
 
 // 体重数据单元格事件响应函数:结束编辑
-function onEndEdit(index) {
-    // 获取当前编辑单元格的最新录入值
-    if (curField !== '') {
-        const editor = $('#dg-lstweight').datagrid('getEditor', { index: index, field: curField });
-        if (editor) {
-            var strWeight = $(editor.target).numberbox('getText');
-        }
-    }
-}
+// function onEndEdit(index) {
+//     // 获取当前编辑单元格的最新录入值
+//     if (curField !== '') {
+//         const editor = $('#dg-lstweight').datagrid('getEditor', { index: index, field: curField });
+//         if (editor) {
+//             var strWeight = $(editor.target).numberbox('getText');
+//         }
+//     }
+// }
 
 // 保存数据按钮事件响应: 更新小鼠体重数据
 document.getElementById('btnSave').addEventListener('click', (event) => {
     // 将datagrid数据加载至内存数据缓存
     var data = $('#dg-lstweight').datagrid('getData');
-    dm_MouseWeight.productId = '2023001001';
-    dm_MouseWeight.testId = '001';
     dm_MouseWeight.weights = data.rows;
     let option_fetch = {
         method: "PUT",
@@ -160,16 +158,27 @@ document.getElementById('btnSave').addEventListener('click', (event) => {
         body: JSON.stringify(dm_MouseWeight.weights)
     }
     // 调用服务端API,更新小鼠体重数据
-    fetch(`posttest/updatemouseweight/${dm_MouseWeight.productId}/${dm_MouseWeight.testId}`, option_fetch)
-        .then(response => response.text())
-        .then(data => console.log(data));
-});
-
-// 测试代码: 提交结论判定请求
-document.getElementById('btnJudge').addEventListener('click',(event)=>{
-    fetch(`posttest/judgefinalresult/${dm_MouseWeight.productId}/${dm_MouseWeight.testId}`)
+    fetch(`../posttest/updatemouseweight/${dm_MouseWeight.productId}/${dm_MouseWeight.testId}`, option_fetch)
         .then(response => response.json())
-        .then(data => console.log(data));
+        .then(data => {
+            if (data.result === true) {
+                $.messager.alert('信息提示', '体重数据更新成功。', 'info');
+                // 提交体重数据成功,继续执行结论判定
+                fetch(`../posttest/judgefinalresult/${dm_MouseWeight.productId}/${dm_MouseWeight.testId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if(data.result === false) {
+                            $.messager.alert('错误提示', data.message, 'error');
+                        }
+                    });
+            } else {
+                $.messager.alert('错误提示', data.message, 'error');
+            }
+        });
 });
 
-loadMouseWeight('2023001001', '001');
+document.getElementById('btnSearch').addEventListener('click', () => {
+    dm_MouseWeight.productId = document.getElementById('txtSpecimenId').value.trim();
+    dm_MouseWeight.testId = document.getElementById('txtTestId').value.trim();
+    loadMouseWeight(dm_MouseWeight.productId, dm_MouseWeight.testId);
+});

@@ -1,7 +1,44 @@
 body {
     margin: 0;
-    padding: 0;  
+    padding: 0;
     user-select: none;
+}
+
+.overlay {
+    position: fixed;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(255, 255, 255, 1);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.spinner {
+    border: 4px solid #F3F3F3;
+    border-top: 4px solid #3498DB;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+.loading-text {
+    font-size: 14px;
+    margin-top: 10px;
+    color: #CCCCCC;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 fieldset {
@@ -34,4 +71,11 @@ textarea:focus {
     outline: none;
     border: 1px rgba(66, 96, 231, 0.6) solid;
     box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+.mypanel {
+    padding: 15px;
+    background-color: white;
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.4);
+    border-radius: 5px;
 }
