@@ -9,7 +9,7 @@ namespace GBT20285_2006.Core
 
         /* =====================试验控制器工作状态变更接口方法========================= */
         /* 开始记录数据 */
-        public void StartRecording();
+        public void StartRecording(MasterWorkMode mode);
         /* 停止记录数据 */
         public void StopRecording(bool save = true);
         /* 执行试验逻辑 */
@@ -42,7 +42,7 @@ namespace GBT20285_2006.Core
          *      true - 设置成功
          *      false - 设置失败(可能原因包括: 试验数据缓存对象为null)
          */
-        public Task<bool> SetPhenomenon(string phenocode, string memo);
+        public bool SetPhenomenon(string phenocode, string memo);
 
         /*
          * 功能: 设置本次试验样品的产品信息

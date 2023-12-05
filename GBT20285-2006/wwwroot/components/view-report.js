@@ -40,7 +40,7 @@ bindTargets.forEach(item => {
 });
 
 document.getElementById('btnSearch').addEventListener('click', () => {
-    fetch(`posttest/searchtestinfo/${proxy_ReportViewDataModel.specimenid}/${proxy_ReportViewDataModel.testid}`)
+    fetch(`../posttest/searchtestinfo/${proxy_ReportViewDataModel.specimenid}/${proxy_ReportViewDataModel.testid}`)
         .then(response => response.json())
         .then(data => {
             if (data.result) {
@@ -220,7 +220,7 @@ function onEndEdit(index) {
 }
 
 function viewMouseWeight(index) {
-    fetch(`posttest/getmouseweight/${currentSpecimenId}/${testDataCache[index].testid}`)
+    fetch(`../posttest/getmouseweight/${currentSpecimenId}/${testDataCache[index].testid}`)
         .then(response => response.json())
         .then(data => {
             $('#dlgViewMouseWeight').dialog({ title: `动物体重明细 - [ 样品编号: ${currentSpecimenId}  试验编号: ${testDataCache[index].testid} ]` });
@@ -234,8 +234,26 @@ function closeViewMouseWeight() {
 }
 
 function generateTestReport(index) {
-    $.messager.progress({ title: '请超等', msg: '正在生成试验报表...' });
-    fetch(`posttest/gettestreport/${currentSpecimenId}/${testDataCache[index].testid}/${testDataCache[index].speciweightpost}/${testDataCache[index].smokerateconfirm}`)
+    if (testDataCache[index].speciweightpost <= 0
+        || testDataCache[index].speciweightpost === undefined
+        || testDataCache[index].speciweightpost === '') {
+        $.messager.alert('错误提示', '[试样残余质量] 输入不正确,请检查输入。', 'warning');
+        return;
+    }
+    if (testDataCache[index].smokerateconfirm === '') {
+        $.messager.alert('信息提示', '请填写 [充分产烟率的确定方法]', 'info');
+        return;
+    }
+    var prompt = $.messager.progress({ title: '请稍等', msg: '正在生成试验报表...' });
+    // prompt.window({
+    //     tools: [{
+    //         iconCls: 'icon-cancel',
+    //         handler: () => {
+    //             $.messager.progress('close');
+    //         }
+    //     }]
+    // });    
+    fetch(`../posttest/gettestreport/${currentSpecimenId}/${testDataCache[index].testid}/${testDataCache[index].speciweightpost}/${testDataCache[index].smokerateconfirm}`)
         .then(response => response.json())
         .then(data => {
             if (data.result) {
@@ -244,9 +262,9 @@ function generateTestReport(index) {
                 $.messager.progress('close');
                 $.messager.alert('信息提示', `生成试验报告成功。<br>样品编号: ${currentSpecimenId}<br>试验编号: ${testDataCache[index].testid}`, 'info');
             } else {
-                $.messager.alert('信息提示', data.message + '<br>' + data.parameters.error, 'warning', () => {
+                $.messager.alert('信息提示', data.message, 'warning', () => {
                     $.messager.progress('close');
-                });  
+                });
             }
         });
 }

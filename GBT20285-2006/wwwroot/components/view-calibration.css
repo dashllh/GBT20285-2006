@@ -7,6 +7,7 @@
 }
 
 .cali-control-view {
+    max-height: 600px;
     padding: 3px;
     /* 布局属性 */
     display: grid;

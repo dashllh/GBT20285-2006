@@ -1,3 +1,11 @@
+const TestServerMode = {
+    Calibration: 1,
+    SpecimenTest: 2
+}
+
+// 初始化Easy UI对话框默认属性
+$.messager.defaults = { ok: '确定', cancel: '取消', modal: true };
+
 //#region 公共函数
 
 /*
@@ -16,63 +24,116 @@ function setCharAt(str, index, chr) {
 
 /* 功能: 新增一条试验控制器系统消息 
  * 参数:
+ *      mode    - 控制器工作模式
  *      idx     - 试验控制器索引
  *      data    - 服务端API返回的消息对象
 */
-function appendServerMsg(idx, data) {
-    $(`#idServerMsg${idx}`).datagrid('insertRow', {
-        index: 0,
-        row: {
-            time: data.time,
-            content: data.message
-        }
-    });
+function appendServerMsg(mode, idx, data) {
+    if (mode === 1) { // 校准模式
+        $(`#idServerCaliMsg${idx}`).datagrid('insertRow', {
+            index: 0,
+            row: {
+                time: data.time,
+                content: data.message
+            }
+        });
+    } else if (mode === 2) { // 试验模式
+        $(`#idServerMsg${idx}`).datagrid('insertRow', {
+            index: 0,
+            row: {
+                time: data.time,
+                content: data.message
+            }
+        });
+    }
 }
 
 /* 功能: 新增一条试验控制器系统消息 
  * 参数:
+ *      mode    - 控制器工作模式
  *      idx     - 试验控制器索引
  *      data    - signalR返回的消息对象
 */
-function appendServerMsgFromSigR(idx, data) {
-    $(`#idServerMsg${idx}`).datagrid('insertRow', {
-        index: 0,
-        row: {
-            time: data.Time,
-            content: data.Message
-        }
-    });
+function appendServerMsgFromSigR(mode, idx, data) {
+    if (mode === 1) { // 校准模式
+        $(`#idServerCaliMsg${idx}`).datagrid('insertRow', {
+            index: 0,
+            row: {
+                time: data.Time,
+                content: data.Message
+            }
+        });
+    } else if (mode === 2) {  // 试验模式
+        $(`#idServerMsg${idx}`).datagrid('insertRow', {
+            index: 0,
+            row: {
+                time: data.Time,
+                content: data.Message
+            }
+        });
+    }
+
 }
 
 /* 功能: 新增一条传感器实时数据并同步更新温度曲线数据
  * 参数:
+ *       mode - 控制器工作模式
  *       idx  - 试验控制器索引
  *       data - signalR实时数据对象
  */
-function appendSensorData(idx, data) {
-    // 新增传感器列表数据
-    $(`#idSensorData${idx}`).datagrid('insertRow', {
-        index: 0,
-        row: {
-            timer: data.Counter,
-            furnacetemp: data.SensorData.FurnaceTemp,
-            cgasflow: data.SensorData.CGasFlow,
-            dgasflow: data.SensorData.DGasFlow
+function appendSensorData(mode, idx, data) {
+    if (mode === 1) {
+        // 新增传感器列表数据
+        $(`#idSensorCaliData${idx}`).datagrid('insertRow', {
+            index: 0,
+            row: {
+                timer: data.Counter,
+                furnacetemp: data.SensorData.FurnaceTemp,
+                refobjtemp: data.SensorData.RefObjTemp,
+                cgasflow: data.SensorData.CGasFlow
+            }
+        });
+        // 如果计时超过60秒,则移除列表数据末尾行
+        if (data.Counter > 60) {
+            var rows = $(`#idSensorCaliData${idx}`).datagrid('getRows');
+            $(`#idSensorCaliData${idx}`).datagrid('deleteRow', rows.length - 1);
         }
-    });
-    // 如果计时超过60秒,则移除列表数据末尾行
-    if (data.Counter > 60) {
-        var rows = $(`#idSensorData${idx}`).datagrid('getRows');
-        $(`#idSensorData${idx}`).datagrid('deleteRow', rows.length - 1);
-    }
-    // 新增曲线数据
-    _charts[idx].config.data.labels.push(data.Counter);
-    _charts[idx].config.data.datasets[0].data.push(data.SensorData.FurnaceTemp);
-    _charts[idx].target.update();
-    // 如果计时超过10分钟,则移除图表头部数据点
-    if (data.Counter > 600) {
-        _charts[idx].config.data.labels.shift();
-        _charts[idx].config.data.datasets[0].data.shift();
+        // 新增曲线数据
+        _caliCharts[idx].config.data.labels.push(data.Counter);
+        _caliCharts[idx].config.data.datasets[0].data.push(data.SensorData.FurnaceTemp);
+        _caliCharts[idx].config.data.datasets[1].data.push(data.SensorData.RefObjTemp);
+        _caliCharts[idx].target.update();
+        // 如果计时超过10分钟,则移除图表头部数据点
+        if (data.Counter > 600) {
+            _caliCharts[idx].config.data.labels.shift();
+            _caliCharts[idx].config.data.datasets[0].data.shift();
+            _caliCharts[idx].config.data.datasets[1].data.shift();
+        }
+    } else if (mode === 2) {
+        // 新增传感器列表数据
+        $(`#idSensorData${idx}`).datagrid('insertRow', {
+            index: 0,
+            row: {
+                timer: data.Counter,
+                furnacetemp: data.SensorData.FurnaceTemp,
+                cgasflow: data.SensorData.CGasFlow,
+                dgasflow: data.SensorData.DGasFlow
+            }
+        });
+        // 如果计时超过60秒,则移除列表数据末尾行
+        if (data.Counter > 60) {
+            var rows = $(`#idSensorData${idx}`).datagrid('getRows');
+            $(`#idSensorData${idx}`).datagrid('deleteRow', rows.length - 1);
+        }
+        // 新增曲线数据
+        _charts[idx].config.data.labels.push(data.Counter);
+        _charts[idx].config.data.datasets[0].data.push(data.SensorData.FurnaceTemp);
+        _charts[idx].target.update();
+        // 如果计时超过10分钟,则移除图表头部数据点
+        if (data.Counter > 600) {
+            _charts[idx].config.data.labels.shift();
+            _charts[idx].config.data.datasets[0].data.shift();
+        }
     }
 }
 
@@ -131,13 +192,13 @@ function startRecording(serverid) {
         .then(response => response.json())
         .then(data => {
             if (data.result === true) {
-                appendServerMsg(serverid, data);
+                appendServerMsg(TestServerMode.SpecimenTest, serverid, data);
             } else {
                 $.messager.confirm('操作确认提示', data.message, (confirm) => {
                     if (confirm) {
                         fetch(`testserver/startrecordinganyway/${serverid}`)
                             .then(response => response.json())
-                            .then(data => appendServerMsg(serverid, data))
+                            .then(data => appendServerMsg(TestServerMode.SpecimenTest, serverid, data))
                     }
                 });
             }
@@ -145,16 +206,18 @@ function startRecording(serverid) {
 }
 // 停止记录
 function stopRecording(serverid) {
-    $.messager.confirm('操作确认提示', '是否保存本次试验数据?', (confirm) => {
+    $.messager.defaults = { ok: '是', cancel: '否', modal: true };
+    $.messager.confirm('操作确认提示', '正在停止试验,是否保存本次试验数据?', (confirm) => {
         fetch(`testserver/stoprecording/${serverid}/${confirm}`)
             .then(response => response.json())
             .then(data => {
-                if(data.result === true) {
-                    resetTestControlPanel(serverid);              
+                if (data.result === true) {
+                    resetTestControlPanel(serverid);
                     appendServerMsg(serverid, data);
                 }
             })
     });
+    $.messager.defaults = { ok: '确定', cancel: '取消', modal: true };
 }
 // 参数设置
 function setParameters(apparatusid) {
@@ -165,7 +228,7 @@ function startHeating(apparatusid) {
     fetch(`testserver/startheating/${apparatusid}`)
         .then(response => response.json())
         .then(data => {
-            appendServerMsg(apparatusid, data);
+            appendServerMsg(TestServerMode.SpecimenTest, apparatusid, data);
         });
 }
 // 停止升温
@@ -304,15 +367,15 @@ for (let i = 0; i < TESTSERVER_COUNT; i++) {
         nounresult: null,
         irriresult: null,
         testresult: null,
-        flag: "0000"
+        flag: "00000000"
     });
     broadcastDataModel.push({
         timer: 0,
         furnacetemp: 0,
         deltatemp: 0,
+        refobjtemp: 0,
         cgasflow: 0,
-        dgasflow: 0,
-        calitemp: 0
+        dgasflow: 0
     });
     // [Product]: 数据源 -> 绑定对象
     handlerProductData.push({
@@ -401,19 +464,21 @@ productUITargets.forEach(item => {
     item.addEventListener('change', () => {
         if (item.dataset.bindProduct === 'productid') {
             // 根据样品编号获取样品信息
-            if (productDataModel[item.dataset.serverid].productid === "") {
-                fetch(`testserver/getproductinfo/${item.value}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        // 返回有效记录,设置对应值的显示
-                        if (data.result === true) {
-                            var record = data.parameters.result;
-                            proxyProductData[item.dataset.serverid].productname = record.productname;
-                            proxyProductData[item.dataset.serverid].specification = record.specification;
-                            proxyProductData[item.dataset.serverid].shape = record.shape;
-                        }
-                    });
-            }
+            fetch(`testserver/getproductinfo/${item.value}`)
+                .then(response => response.json())
+                .then(data => {
+                    // 返回有效记录,设置对应值的显示
+                    if (data.result === true) {
+                        var record = data.parameters.result;
+                        proxyProductData[item.dataset.serverid].productname = record.productname;
+                        proxyProductData[item.dataset.serverid].specification = record.specification;
+                        proxyProductData[item.dataset.serverid].shape = record.shape;
+                    } else {
+                        proxyProductData[item.dataset.serverid].productname = '';
+                        proxyProductData[item.dataset.serverid].specification = '';
+                        proxyProductData[item.dataset.serverid].shape = '';
+                    }
+                });
             // 同步报表编号与样品编号
             proxyTestData[item.dataset.serverid].reportid = item.value;
         }
@@ -464,11 +529,11 @@ connection.on("ServerBroadCast", function (jsonObject) {
     proxyBroadcastData[data.ServerId].deltatemp = data.CaculationData.DeltaTemp;
     // 若试验控制器状态为[Recording]新增传感器历史数据及曲线数据
     if (data.Status === 3) {
-        appendSensorData(data.ServerId, data);
+        appendSensorData(data.WorkMode, data.ServerId, data);
     }
     // 如果有新的系统消息,则添加
     data.ServerMessages.forEach((item) => {
-        appendServerMsgFromSigR(data.ServerId, item);            
+        appendServerMsgFromSigR(data.WorkMode, data.ServerId, item);
     });
     // 根据试验控制器状态更新面板工具栏命令按钮显示
     switch (data.Status) {

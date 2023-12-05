@@ -7,7 +7,6 @@ using System.Text.Json;
 using System.Globalization;
 using CsvHelper;
 
-
 namespace GBT20285_2006.Core
 {
     /* 该类型定义试验控制相关逻辑 */
@@ -115,17 +114,11 @@ namespace GBT20285_2006.Core
             _timer.Change(0, 1000);
         }
 
-        public void ResetProductData()
-        {
-            _product = null;
-        }
+        public void ResetProductData() => _product = null;
 
-        public void ResetTestData()
-        {
-            _test = null;
-        }
+        public void ResetTestData() => _test = null;
 
-        public async Task<bool> SetPhenomenon(string phenocode, string memo)
+        public bool SetPhenomenon(string phenocode, string memo)
         {
             if (_test == null)
                 return false;
@@ -145,18 +138,13 @@ namespace GBT20285_2006.Core
             return true;
         }
 
-        public void SetProductData(Product product)
-        {
-            _product = product;
-        }
+        public void SetProductData(Product product) => _product = product;
 
-        public void SetTestData(Test test)
-        {
-            _test = test;
-        }
+        public void SetTestData(Test test) => _test = test;
 
-        public void StartRecording()
+        public void StartRecording(MasterWorkMode mode)
         {
+            _workmode = mode;
             _status = MasterStatus.Recording;
         }
 
@@ -190,9 +178,10 @@ namespace GBT20285_2006.Core
         {
             _signalRData.Counter = _counter;
             /* 获取传感器最新采集数据 */
-            _signalRData.SensorData.FurnaceTemp = AppGlobal.Sensors[0].Outputvalue;  // 环形炉温度
-            _signalRData.SensorData.CGasFlow = AppGlobal.Sensors[1].Outputvalue; ;   // 载气流量
-            _signalRData.SensorData.DGasFlow = AppGlobal.Sensors[2].Outputvalue; ;   // 稀释气流量
+            _signalRData.SensorData.FurnaceTemp = AppGlobal.Sensors[0].Outputvalue; // 炉壁温度
+            _signalRData.SensorData.CGasFlow = AppGlobal.Sensors[1].Outputvalue;    // 载气流量
+            _signalRData.SensorData.DGasFlow = AppGlobal.Sensors[2].Outputvalue;    // 稀释气流量
+            _signalRData.SensorData.RefObjTemp = AppGlobal.Sensors[3].Outputvalue;  // 参照物温度
             /* 设置计算数据最新值 */
             // 炉壁温度偏差
             if (_test != null && _test.Heattemp.HasValue)
@@ -228,7 +217,7 @@ namespace GBT20285_2006.Core
                         _status = MasterStatus.Preparing;
                     }
                     break;
-                case MasterStatus.Recording:                    
+                case MasterStatus.Recording:
                     // 将最新采集数据添加至缓存
                     _bufSensorData.Add(new SensorData()
                     {
@@ -242,7 +231,15 @@ namespace GBT20285_2006.Core
                     break;
                 case MasterStatus.Complete:
                     _status = MasterStatus.Idle;
-                    await PostTestProcess();
+                    if (_workmode == MasterWorkMode.SampleTest)
+                    {
+                        await PostTestProcess();
+                    }
+                    else if (_workmode == MasterWorkMode.Calibration)
+                    {
+                        // 输出校准数据记录
+                    }
+
                     break;
                 case MasterStatus.Exception:
                     break;
@@ -291,6 +288,7 @@ namespace GBT20285_2006.Core
                 {
                     ctx.Tests.Add(_test);
                     // 新建小鼠体重数据记录
+                    var random = new Random();
                     List<MouseWeight> weights = new List<MouseWeight>();
                     for (short i = 0; i < _test.Mousecnt; i++)
                     {
@@ -298,7 +296,9 @@ namespace GBT20285_2006.Core
                         {
                             ProductId = _test.Specimenid,
                             TestId = _test.Testid,
-                            MouseId = i
+                            MouseId = i,
+                            PreWeight2 = 15.0 + (random.Next() % 5) / 10,
+                            PreWeight1 = 15.5 + (random.Next() % 5) / 10
                         });
                     }
                     ctx.MouseWeights.AddRange(weights.ToArray());
@@ -339,8 +339,10 @@ namespace GBT20285_2006.Core
     {
         // 数据计数器(等效于试验计时器)
         public int Counter { get; set; }
-        // 环形炉温度
+        // 炉壁温度
         public double FurnaceTemp { get; set; }
+        // 校准参照物温度
+        public double RefObjTemp { get; set; }
         // 载气流量
         public double CGasFlow { get; set; }
         // 稀释气流量

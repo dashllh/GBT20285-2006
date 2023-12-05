@@ -40,7 +40,6 @@ function validateWeight(value) {
 // 配置小鼠体重列表控件的列属性
 $('#dg-lstweight').datagrid({
     columns: [[
-        { field: 'status', title: '状态', width: 80, align: 'center' },
         { field: 'mouseId', title: '动物编号', width: 80, align: 'center' },
         {
             field: 'preWeight2', title: '试验前二日体重(g)', width: 140, align: 'center',
@@ -120,11 +119,11 @@ $('#dg-lstweight').datagrid({
 function loadMouseWeight(productid, testid) {
     fetch(`../posttest/getmouseweight/${productid}/${testid}`)
         .then(response => response.json())
-        .then(records => {
+        .then(data => {
             // 设置数据模型中的对应数据项
-            dm_MouseWeight.weights = records;
+            dm_MouseWeight.weights = data.parameters.result;
             // datagrid控件加载最新体重数据
-            $('#dg-lstweight').datagrid('loadData', records);
+            $('#dg-lstweight').datagrid('loadData', data.parameters.result);
         });
 }
 

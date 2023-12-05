@@ -49,7 +49,7 @@ function submitTestPheno(serverid) {
     // 提交最新设置
     fetch(`testserver/setphenomenon/${serverid}/${proxyTestData[serverid].phenocode}/''`)
         .then(response => response.json())
-        .then(data => appendServerMsg(serverid, data));
+        .then(data => appendServerMsg(TestServerMode.SpecimenTest,serverid, data));
 
     $(`#dlgSetPheno${serverid}`).dialog('close');
 }

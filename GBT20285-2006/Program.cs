@@ -4,6 +4,7 @@ using GBT20285_2006.Core;
 using GBT20285_2006.Utility;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.EventLog;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,12 +37,18 @@ builder.Services.Configure<EventLogSettings>(config =>
     config.SourceName = "GB20285TestServer";
 });
 
+// 添加SeriLog支持
+builder.Host.UseSerilog((context, configuration) =>
+    configuration.ReadFrom.Configuration(context.Configuration));
+
 // 支持以WindowsService方式启动试验服务器
 builder.Host.UseWindowsService();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+
+app.UseSerilogRequestLogging();
 
 app.UseStaticFiles();
 

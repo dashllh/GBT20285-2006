@@ -36,7 +36,7 @@ function submitNewTest(serverid) {
         .then(response => response.json())
         .then(data => {
             // 显示服务器返回消息
-            appendServerMsg(serverid, data);
+            appendServerMsg(TestServerMode.SpecimenTest,serverid, data);
             // 关闭对话框
             closeNewTest(serverid);
         })

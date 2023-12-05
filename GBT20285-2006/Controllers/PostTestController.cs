@@ -9,6 +9,7 @@ using OfficeOpenXml;
 using DevExpress.XtraPrinting;
 using DevExpress.Spreadsheet;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using System.Threading;
 
 namespace GBT20285_2006.Controllers
 {
@@ -342,17 +343,25 @@ namespace GBT20285_2006.Controllers
         [HttpGet("gettestreport/{productid}/{testid}/{postweight}/{smokeoption}")]
         public async Task<IActionResult> GenerateTestReport(string productid, string testid, double postweight, string smokeoption)
         {
+            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+
             var response = new ServerResponseMessage();
             response.Command = "gettestreport";
 
             /* 试验数据存储目录 */
-            string prodpath = $"D:\\GB20285\\{productid}";
-            string smppath = $"{prodpath}\\{testid}";
-            string datapath = $"{smppath}\\data";
-            string rptpath = $"{smppath}\\report";
+            //string prodpath = $"D:\\GB20285\\{productid}";
+            //string smppath = $"{prodpath}\\{testid}";
+            //string datapath = $"{smppath}\\data";
+            //string rptpath = $"{smppath}\\report";
+            string prodpath = Path.Combine("D:", "GB20285", productid);
+            string smppath = Path.Combine(prodpath, testid);
+            string datapath = Path.Combine(smppath, "data");
+            string rptpath = Path.Combine(smppath, "report");
 
             try
             {
+                cancellationTokenSource.CancelAfter(10000);
+
                 // 从数据库获取指定样品编号及试验编号的试验数据
                 using var ctx = _dbContextFactory.CreateDbContext();
                 var productrecord = await ctx.Products.AsNoTracking().Where(x => x.Productid == productid).FirstOrDefaultAsync();
@@ -389,8 +398,8 @@ namespace GBT20285_2006.Controllers
                 {
                     //取得传感器数据页面
                     ExcelWorksheet sheet_sensordata = package.Workbook.Worksheets.ElementAt(1);
-                    //填充传感器原始数据(含首行标题)
-                    sheet_sensordata.Cells["A1"].LoadFromText(new FileInfo($"{datapath}\\sensordata.csv"), format, null, true);
+                    //填充传感器原始数据(含首行标题)                    
+                    await sheet_sensordata.Cells["A1"].LoadFromTextAsync(new FileInfo($"{datapath}\\sensordata.csv"), format, OfficeOpenXml.Table.TableStyles.Light1, true);
                     //取得小鼠体重页面
                     ExcelWorksheet sheet_mouseweight = package.Workbook.Worksheets.ElementAt(2);
                     //将小鼠体重页面拷贝至试验报表的 [小鼠体重] 页面
@@ -399,16 +408,7 @@ namespace GBT20285_2006.Controllers
                         var records = ctx.MouseWeights.AsNoTracking()
                             .Where(x => x.ProductId == testrecord.Specimenid && x.TestId == testrecord.Testid)
                             .OrderBy(x => x.MouseId)
-                            .Select(m => new
-                            {
-                                m.MouseId,
-                                m.PreWeight2,
-                                m.PreWeight1,
-                                m.ExpWeight,
-                                m.PostWeight1,
-                                m.PostWeight2,
-                                m.PostWeight3
-                            })
+                            .Select(m => new { m.MouseId, m.PreWeight2, m.PreWeight1, m.ExpWeight, m.PostWeight1, m.PostWeight2, m.PostWeight3 })
                             .ToList();
                         sheet_mouseweight.Cells["A2"].LoadFromDataTable(Utils.ToDataTable(records));
                     }
@@ -446,9 +446,9 @@ namespace GBT20285_2006.Controllers
                         //设备编号
                         sheet_main.Cells["G15"].Value = testrecord.Apparatusid;
                         //设备检定日期From
-                        sheet_main.Cells["AA14"].Value = testrecord.Checkdatef?.ToString("d");
+                        sheet_main.Cells["AA14"].Value = testrecord.Checkdatef?.ToString("yyyy年MM月dd日");
                         //设备检定日期To
-                        sheet_main.Cells["AA15"].Value = testrecord.Checkdatet?.ToString("d");
+                        sheet_main.Cells["AA15"].Value = testrecord.Checkdatet?.ToString("yyyy年MM月dd日");
 
                         //实验动物来源
                         //实验动物品种
@@ -507,23 +507,6 @@ namespace GBT20285_2006.Controllers
                         {
                             sheet_main.Cells["G22"].Value = "■";
                         }
-                        //if (testrecord.Smokerate.HasValue)
-                        //{
-                        //    var tempvalue = (int)(testrecord.Smokerate * 10);
-                        //    if (tempvalue > 950)
-                        //    {
-                        //        sheet_main.Cells["G21"].Value = "■";
-                        //    }
-                        //    else if (smokeoption == "1")
-                        //    {
-                        //        sheet_main.Cells["G20"].Value = "■";
-                        //    }
-                        //    else if (smokeoption == "2")
-                        //    {
-                        //        sheet_main.Cells["G22"].Value = "■";
-                        //    }
-                        //}
-
                         //载气流量
                         sheet_main.Cells["G23"].Value = testrecord.Cgasflow;
                         //稀释气流量
@@ -575,7 +558,7 @@ namespace GBT20285_2006.Controllers
                         //检验人员
                         sheet_main.Cells["E50"].Value = testrecord.Operator;
                         //试验日期
-                        sheet_main.Cells["AB50"].Value = testrecord.Testdate?.ToString("d");
+                        sheet_main.Cells["AB50"].Value = testrecord.Testdate?.ToString("yyyy年MM月dd日");
                         //小鼠体重恢复情况
                         if (testrecord.Testresult == true)
                         {
@@ -611,8 +594,6 @@ namespace GBT20285_2006.Controllers
                             //输出现象描述
                             sheet_main.Cells["G36"].Value = pheno.ToString();
                         }
-                        // 保存试验结果补录数据至数据库
-                        await ctx.SaveChangesAsync();
                         //保存本次试验报表
                         await package.SaveAsAsync($"{rptpath}\\report.xlsx");
                     }
@@ -627,8 +608,17 @@ namespace GBT20285_2006.Controllers
                     // 导出报表首页为PDF格式
                     PdfExportOptions options = new PdfExportOptions();
                     options.DocumentOptions.Author = testrecord?.Operator;
-                    workbook.ExportToPdf($"{rptpath}\\report.pdf", options, "main");                    
+                    workbook.ExportToPdf($"{rptpath}\\report.pdf", options, "main");
                 }
+                // 增加[已出具试验报表]标志位
+                if (testrecord?.Flag != null)
+                {
+                    char[] array = testrecord.Flag.ToCharArray();
+                    array[1] = '1'; // 设置处理标志为[已出具试验报表]
+                    testrecord.Flag = new string(array);
+                }
+                // 保存试验结果补录数据至数据库
+                await ctx.SaveChangesAsync();
                 // 复制报表至客户端可预览位置
                 string previewpath = $"{_Environment.WebRootPath}\\previewreports\\{testrecord?.Specimenid}\\{testrecord?.Testid}";
                 if (!Directory.Exists(previewpath))
@@ -636,10 +626,18 @@ namespace GBT20285_2006.Controllers
                     Directory.CreateDirectory(previewpath);
                 }
                 System.IO.File.Copy($"{rptpath}\\report.pdf", previewpath + "\\report.pdf", true);
-                
+
                 response.Result = true;
                 response.Message = $"生成报表成功。样品编号: [ {testrecord?.Specimenid} ],试验编号:[ {testrecord?.Testid} ]";
-                response.Parameters.Add("previewpath",$"previewreports\\{testrecord?.Specimenid}\\{testrecord?.Testid}\\report.pdf");
+                response.Parameters.Add("previewpath", $"previewreports\\{testrecord?.Specimenid}\\{testrecord?.Testid}\\report.pdf#view=FitV");
+                response.Time = DateTime.Now.ToString("HH:mm:ss");
+
+                return new JsonResult(response);
+            }
+            catch (OperationCanceledException e)
+            {
+                response.Result = false;
+                response.Message = "报表生成过程超时,请重新尝试。" + "<br><br>" + e.Message;
                 response.Time = DateTime.Now.ToString("HH:mm:ss");
 
                 return new JsonResult(response);
@@ -647,11 +645,14 @@ namespace GBT20285_2006.Controllers
             catch (Exception e)
             {
                 response.Result = false;
-                response.Message = "报表生成过程发生异常,报表生成失败。";
+                response.Message = "报表生成过程发生异常,错误信息如下: " + "<br><br>" + e.Message;
                 response.Time = DateTime.Now.ToString("HH:mm:ss");
-                response.Parameters.Add("error", e.Message);
 
                 return new JsonResult(response);
+            }
+            finally
+            {
+                cancellationTokenSource.Dispose();
             }
         }
 

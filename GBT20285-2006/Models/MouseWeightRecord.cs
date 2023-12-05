@@ -1,8 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
-
-namespace GBT20285_2006.Models
+﻿namespace GBT20285_2006.Models
 {
     public class MouseWeightRecord
     {

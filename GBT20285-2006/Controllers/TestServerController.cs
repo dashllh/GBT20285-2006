@@ -162,12 +162,20 @@ namespace GBT20285_2006.Controllers
             using var ctx = _dbContextFactory.CreateDbContext();
             try
             {
-                var record = await ctx.Products.AsNoTracking().Where(x => x.Productid == productid).FirstAsync();
-                response.Result = true;
-                response.Message = $"获取指定编号样品信息成功。样品编号: [{productid}]";
-                response.Time = DateTime.Now.ToString("HH:mm:ss");
-                response.Parameters.Add("result", record);
-
+                var record = await ctx.Products.AsNoTracking().Where(x => x.Productid == productid).FirstOrDefaultAsync();
+                if (record != null)
+                {
+                    response.Result = true;
+                    response.Message = $"获取指定编号样品信息成功。样品编号: [{productid}]";
+                    response.Time = DateTime.Now.ToString("HH:mm:ss");
+                    response.Parameters.Add("result", record);
+                }
+                else
+                {
+                    response.Result = false;
+                    response.Message = $"没有检索到已有的样品信息。样品编号: [{productid}]";
+                    response.Time = DateTime.Now.ToString("HH:mm:ss");
+                }
                 return new JsonResult(response);
             }
             catch (Exception e)
@@ -192,7 +200,7 @@ namespace GBT20285_2006.Controllers
 
             if (_serverContainer.Servers[id].Status == MasterStatus.Ready)
             {
-                _serverContainer.Servers[id].StartRecording();
+                _serverContainer.Servers[id].StartRecording(MasterWorkMode.SampleTest);
                 response.Result = true;
                 response.Message = "开始记录数据";
                 response.Time = DateTime.Now.ToString("HH:mm:ss");
@@ -207,6 +215,23 @@ namespace GBT20285_2006.Controllers
             return new JsonResult(response);
         }
 
+        /*
+         * 功能: 开始校准模式下的数据记录
+         */
+        [HttpGet("startcalirecording/{id}")]
+        public IActionResult StartCaliRecording(int id)
+        {
+            var response = new ServerResponseMessage();
+            response.Command = "startcalirecording";
+
+            _serverContainer.Servers[id].StartRecording(MasterWorkMode.Calibration);
+            response.Result = true;
+            response.Message = "开始记录数据";
+            response.Time = DateTime.Now.ToString("HH:mm:ss");
+
+            return new JsonResult(response);
+        }
+
         /* 功能: 开始试验数据记录,若当前未达到试验条件,仍然开始记录数据 */
         [HttpGet("startrecordinganyway/{id}")]
         public IActionResult StartRecordingAnyWay(int id)
@@ -214,7 +239,7 @@ namespace GBT20285_2006.Controllers
             var response = new ServerResponseMessage();
             response.Command = "startrecording";
 
-            _serverContainer.Servers[id].StartRecording();
+            _serverContainer.Servers[id].StartRecording(MasterWorkMode.SampleTest);
 
             response.Result = true;
             response.Message = "开始记录数据";
@@ -309,11 +334,11 @@ namespace GBT20285_2006.Controllers
          *       memo      - 其他现象描述
          */
         [HttpGet("setphenomenon/{id}/{phenocode}/{memo}")]
-        public async Task<IActionResult> SetPhenomenon(int id, string phenocode, string memo)
+        public IActionResult SetPhenomenon(int id, string phenocode, string memo)
         {
             var response = new ServerResponseMessage();
             response.Command = "setphenomenon";
-            var ret = await _serverContainer.Servers[id].SetPhenomenon(phenocode, memo);
+            var ret = _serverContainer.Servers[id].SetPhenomenon(phenocode, memo);
             if (ret)
             {
                 response.Result = true;
